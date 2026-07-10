@@ -7,6 +7,8 @@ nav_order: 2
 description: Notes I keep while reading papers and working through courses. Shared as-is; most are living documents, so expect a few rough edges.
 ---
 
+<small class="text-muted">These are personal study notes shared for educational, non-commercial purposes. Embedded figures belong to the original courses, textbooks, and papers cited; if you are a rights holder and would like anything removed, please <a href="mailto:okumochu55@gmail.com">contact me</a>.</small>
+
 {% assign paper_notes = site.notes | where: "category", "research paper" | sort: "order" %}
 {% assign lecture_notes = site.notes | where: "category", "lecture" %}
 
