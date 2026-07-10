@@ -1,149 +1,82 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Chia-Fan Chu</title>
-  <meta name="description" content="Chia-Fan Chu (禇家帆): graduate student, productivity optimization.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%9B%EF%B8%8F%3C/text%3E%3C/svg%3E">
-  <style>
-    :root {
-      --bg: #0e1117;
-      --panel: #161b22;
-      --text: #e6edf3;
-      --muted: #8b949e;
-      --accent: #f78166;
-      --border: #30363d;
-      --max: 720px;
-    }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; }
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "Noto Sans TC", sans-serif;
-      font-size: 17px;
-      line-height: 1.65;
-      -webkit-font-smoothing: antialiased;
-    }
-    main {
-      max-width: var(--max);
-      margin: 0 auto;
-      padding: 96px 24px 96px;
-    }
-    h1 {
-      font-size: 2.25rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      margin: 0 0 8px;
-    }
-    h1 .zh {
-      color: var(--muted);
-      font-weight: 400;
-      margin-left: 8px;
-      font-size: 0.85em;
-    }
-    .tagline {
-      color: var(--muted);
-      margin: 0 0 48px;
-      font-size: 1.05rem;
-    }
-    section { margin-bottom: 56px; }
-    h2 {
-      font-size: 0.78rem;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin: 0 0 20px;
-    }
-    p { margin: 0 0 16px; }
-    p:last-child { margin-bottom: 0; }
-    .item {
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 0;
-    }
-    .item .where { color: var(--text); }
-    .item .what { color: var(--muted); font-size: 0.95rem; }
-    .socials {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 24px;
-    }
-    .socials a {
-      color: var(--text);
-      text-decoration: none;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 2px;
-      transition: color .15s, border-color .15s;
-    }
-    .socials a:hover {
-      color: var(--accent);
-      border-bottom-color: var(--accent);
-    }
-    a.inline {
-      color: var(--accent);
-      text-decoration: none;
-      border-bottom: 1px solid transparent;
-    }
-    a.inline:hover { border-bottom-color: var(--accent); }
-    footer {
-      max-width: var(--max);
-      margin: 0 auto;
-      padding: 0 24px 48px;
-      color: var(--muted);
-      font-size: 0.85rem;
-      border-top: 1px solid var(--border);
-      padding-top: 24px;
-    }
-    @media (max-width: 480px) {
-      main { padding: 64px 20px 64px; }
-      h1 { font-size: 1.75rem; }
-      .item { flex-direction: column; gap: 4px; }
-    }
-  </style>
-</head>
-<body>
-  <main>
-    <header>
-      <h1>Chia-Fan Chu<span class="zh">禇家帆</span></h1>
-      <p class="tagline">Graduate student. Productivity optimization.</p>
-    </header>
+<!DOCTYPE html> <html lang="en"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Chia-Fan Chu </title> <meta name="author" content="Chia-Fan Chu"> <meta name="description" content="Chia-Fan Chu (禇家帆): graduate student at National Taiwan University working on reinforcement learning for production scheduling and applied operations research. "> <meta name="keywords" content="chia-fan chu, reinforcement learning, scheduling, operations research, national taiwan university"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;%E2%9A%9B%EF%B8%8F&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/assets/css/main.css?v=f0b101217084a90093badfe99ff9a7d1"> <link rel="canonical" href="https://okumochu.github.io/"> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item active"> <a class="nav-link" href="/">about <span class="sr-only">(current)</span> </a> </li> <li class="nav-item "> <a class="nav-link" href="/cv/">CV </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title"> <span class="font-weight-bold">Chia-Fan</span> Chu </h1> <p class="desc">Information Management, National Taiwan University.</p> </header> <article> <div class="profile float-right"> <figure> <picture> <source class="responsive-img-srcset" srcset="/assets/img/prof_pic-480.webp 480w,/assets/img/prof_pic-800.webp 800w,/assets/img/prof_pic-1400.webp 1400w," type="image/webp" sizes="(min-width: 930px) 270.0px, (min-width: 576px) 30vw, 95vw"> <img src="/assets/img/prof_pic.jpg?v=c278c858294dbd1cbb87067333d1ef3e" class="img-fluid z-depth-1 rounded" width="100%" height="auto" alt="prof_pic.jpg" loading="eager" onerror="this.onerror=null; document.querySelectorAll('.responsive-img-srcset').forEach(function (n) { n.remove(); });"> </source></picture> </figure> <div class="more-info"> <p>Productivity Optimization Lab</p> <p>National Taiwan University</p> <p>Taipei, Taiwan</p> </div> </div> <div class="clearfix"> <p>Hi, I am Chia-Fan Chu (禇家帆). I am a graduate student in Information Management at National Taiwan University, where I finish my master’s degree in 2026 and continue as a PhD student with the same advisor at the Productivity Optimization Lab.</p> <p>I work at the intersection of applied operations research and machine learning, with a focus on scheduling and combinatorial optimization under uncertainty. My master’s research develops deep reinforcement learning methods for dynamic flexible job shop scheduling: heterogeneous graph neural networks for state representation, curriculum learning and reward shaping for training, and multi-criteria objectives such as makespan and total weighted tardiness. My broader interest is in learning-based methods that adapt to disturbances the way real shop floors do, rather than re-solving from scratch each time the world shifts.</p> <p>Looking ahead, I am exploring how large language models can act as decision interfaces for manufacturing: translating a manager’s natural-language intent into decision contracts that drive scheduling systems, so that optimization tools get adopted instead of admired. I am currently an intern at TSMC in Hsinchu. The icons below are the best ways to reach me.</p> </div> <div class="social"> <div class="contact-icons"> <a href="mailto:okumochu55@gmail.com" title="Email"><i class="fa-solid fa-envelope"></i></a> <a href="https://github.com/okumochu" title="Github username" rel="external nofollow noopener" target="_blank"><i class="fa-brands fa-github"></i></a> <a href="https://www.linkedin.com/in/chia-fan-chu" title="Linkedin username" rel="external nofollow noopener" target="_blank"><i class="fa-brands fa-linkedin"></i></a> <a href="https://scholar.google.com/citations?user=BfaixEUAAAAJ" title="Scholar userid" rel="external nofollow noopener" target="_blank"><i class="ai ai-google-scholar"></i></a> </div> <div class="contact-note">Email is the most reliable way to reach me. </div> </div> </article> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Chia-Fan Chu. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/assets/al_math/js/mathjax-setup.js"></script> <script defer src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6" crossorigin="anonymous"></script> <script src="/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/assets/al_img_tools/js/zoom.js"></script> <script defer src="/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
 
-    <section>
-      <h2>About</h2>
-      <p>
-        I'm a graduate student interested in productivity optimization, applied operations research,
-        and tools that make work feel less like work. I like building things that turn messy human
-        workflows into systems that run themselves.
-      </p>
-      <p>This site is a work in progress. The links below are the best ways to reach me.</p>
-    </section>
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-about",
+    title: "about",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/";
+    },
+  },{id: "nav-cv",
+          title: "CV",
+          description: "Education, experience, publications, and skills.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/cv/";
+          },
+        },{id: "post-google-gemini-updates-flash-1-5-gemma-2-and-project-astra",
+        
+          title: 'Google Gemini updates: Flash 1.5, Gemma 2 and Project Astra <svg width="1.2rem" height="1.2rem" top=".5rem" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M17 13.5v6H5v-12h6m3-3h6v6m0-6-9 9" class="icon_svg-stroke" stroke="#999" stroke-width="1.5" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"></path></svg>',
+        
+        description: "We’re sharing updates across our Gemini family of models and a glimpse of Project Astra, our vision for the future of AI assistants.",
+        section: "Posts",
+        handler: () => {
+          
+            window.open("https://blog.google/technology/ai/google-gemini-update-flash-ai-assistant-io-2024/", "_blank");
+          
+        },
+      },{id: "post-displaying-external-posts-on-your-al-folio-blog",
+        
+          title: 'Displaying External Posts on Your al-folio Blog <svg width="1.2rem" height="1.2rem" top=".5rem" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M17 13.5v6H5v-12h6m3-3h6v6m0-6-9 9" class="icon_svg-stroke" stroke="#999" stroke-width="1.5" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round"></path></svg>',
+        
+        description: "",
+        section: "Posts",
+        handler: () => {
+          
+            window.open("https://medium.com/@al-folio/displaying-external-posts-on-your-al-folio-blog-b60a1d241a0a?source=rss-17feae71c3c4------2", "_blank");
+          
+        },
+      },{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%6F%6B%75%6D%6F%63%68%75%35%35@%67%6D%61%69%6C.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-github',
+        title: 'GitHub',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://github.com/okumochu", "_blank");
+        },
+      },{
+        id: 'social-linkedin',
+        title: 'LinkedIn',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.linkedin.com/in/chia-fan-chu", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=BfaixEUAAAAJ", "_blank");
+        },
+      },];
 
-    <section>
-      <h2>Education</h2>
-      <div class="item">
-        <span class="where">National Taiwan University</span>
-        <span class="what">Information Management</span>
-      </div>
-    </section>
-
-    <section>
-      <h2>Contact</h2>
-      <div class="socials">
-        <a href="mailto:okumochu55@gmail.com">Email</a>
-        <a href="https://github.com/okumochu" target="_blank" rel="noopener">GitHub</a>
-        <a href="https://www.linkedin.com/in/chia-fan-chu/" target="_blank" rel="noopener">LinkedIn</a>
-        <a href="https://scholar.google.com/citations?user=BfaixEUAAAAJ" target="_blank" rel="noopener">Google Scholar</a>
-      </div>
-    </section>
-  </main>
-
-  <footer>
-    &copy; <span id="y"></span> Chia-Fan Chu
-    <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
-  </footer>
-</body>
-</html>
+</script> <script src="/assets/al_search/js/shortcut-key.js"></script> </body> </html>
