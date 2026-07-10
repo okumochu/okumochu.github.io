@@ -1,0 +1,317 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Ch 6 Theory of Graph Neural Networks | Chia-Fan Chu </title> <meta name="author" content="Chia-Fan Chu"> <meta name="description" content="Chia-Fan Chu (禇家帆): graduate student at National Taiwan University working on reinforcement learning for production scheduling and applied operations research. "> <meta name="keywords" content="chia-fan chu, reinforcement learning, scheduling, operations research, national taiwan university"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;%E2%9A%9B%EF%B8%8F&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/assets/css/main.css?v=f0b101217084a90093badfe99ff9a7d1"> <link rel="canonical" href="https://okumochu.github.io/notes/mlg-ch6-theory-of-gnns/"> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/"> <span class="font-weight-bold">Chia-Fan</span> Chu </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/cv/">CV </a> </li> <li class="nav-item active"> <a class="nav-link" href="/notes/">shared notes <span class="sr-only">(current)</span> </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title">Ch 6 Theory of Graph Neural Networks</h1> <p class="post-description"></p> </header> <article> <p><img src="/assets/notes/mlg-ch6-theory-of-gnns/image.png" alt="image" loading="lazy" style="max-width: 100%; height: auto;"></p> <ul> <li>GNN 是透過 neighbor 相互連接的結構來區分不同 node，這個結構上的子圖可以被稱為 <strong>Computation Graph =</strong> 以自己為 root 向外擴張 k-hop (length = k) 的樹 <ul> <li> <p>反過來說，兩個 node k-hop neighbor (computation graphs) 都相同，這兩個 node embedding 也要相同 e.g. 對稱圖形</p> <p><img src="/assets/notes/mlg-ch6-theory-of-gnns/image-1.png" alt="image 1" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> </ul> </li> <li>一個強大的 GNN 設計就是要能分辨不同 node，要做到這件事情就是在產生 embedding (aggregation) 的時候不能遺漏結構的資訊 = <strong>表達力 expressiveness</strong> </li> <li>所以在 aggregation 的時候要<strong>應該要用單射函數 (injective function)</strong> <ul> <li> <p>單射函數能保證不同的輸入就會有不同的輸出 = one to one (一一對應)</p> <p><img src="/assets/notes/mlg-ch6-theory-of-gnns/image-2.png" alt="image 2" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> </ul> </li> </ul> <h2 id="designing-the-most-powerful-gnn">Designing the Most Powerful GNN</h2> <p>根據上述的思路，最強大的 GNN 是要能區分不同結構的 node (embedding 要不同)</p> \[\text{Aggregate}(\{x_u : u \in N(v)\})\] <p>有很多種不同的 aggregation 的方式以 GCN、GraphSAGE 為例</p> <ul> <li>假設有一個 multi-set，裡面的每個元素都代表 node embedding</li> <li>GCN 會做 mean pooling，GraphSAGE 做 max pooling</li> <li> <p>下面兩個 multi-sets aggregate 的結果會完全相同</p> \[\left\{ \begin{bmatrix} 1 \\ 0 \end{bmatrix}, \begin{bmatrix} 0 \\ 1 \end{bmatrix} \right\}, \quad \left\{ \begin{bmatrix} 1 \\ 0 \end{bmatrix}, \begin{bmatrix} 1 \\ 0 \end{bmatrix}, \begin{bmatrix} 0 \\ 1 \end{bmatrix}, \begin{bmatrix} 0 \\ 1 \end{bmatrix} \right\}\] </li> </ul> <blockquote> <p><strong>Note</strong> 通常來說表達力 (是否能分辨不同的鄰居結構) 來說 <strong>max &lt; mean &lt; sum</strong> (加總比較接近 injective function，可以同時保留特徵的內容以及大小)</p> <p><img src="/assets/notes/mlg-ch6-theory-of-gnns/image-3.png" alt="image 3" loading="lazy" style="max-width: 100%; height: auto;"></p> </blockquote> <p>順著這個邏輯想下去就知道，sum 還是不夠強。需要更接近 injective function 的 aggregation operation 被創造出來。於是就有以下定理 (Xu et al. ICLR 2019)</p> <ul> <li> <p>Any injective multi-set function can be expressed as the following where \(\phi\) and \(f\), are non-linear function <strong>i.e. MLP</strong></p> \[\\ \phi \left( \sum_{x \in S} f(x) \right)\] <ul> <li> <p>Universal Approximation Theorem, Hornik et al., 1989</p> <p><img src="/assets/notes/mlg-ch6-theory-of-gnns/image-4.png" alt="image 4" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> </ul> </li> <li> <p><strong>Graph Isomorphism Network (GIN)</strong> 就是用以上的定理設計出來的</p> <ul> <li> <p>直觀來看就是先用非線性函數轉換所有的 node feature 然後加總，再經過一個非線性轉換，就能保證資訊不丟失</p> <blockquote> <p><strong>Note</strong> 用 MLP 來確保特徵轉換過程夠獨特，不會讓<strong>不同的輸入算出同的輸出</strong> (! injective)</p> </blockquote> \[\text{MLP}_\phi \left( \sum_{x \in S} \text{MLP}_f(x) \right)\] </li> </ul> </li> </ul> <h3 id="discussion">Discussion</h3> <p><img src="/assets/notes/mlg-ch6-theory-of-gnns/image-5.png" alt="image 5" loading="lazy" style="max-width: 100%; height: auto;"></p> <h2 id="graph-isomorphism-network-gin"><strong>Graph Isomorphism Network (GIN)</strong></h2> <p>GIN 來自一個數學經典演算法 <strong>Weisfeiler-Lehman (WL) Test / Color-Refinement algorithm</strong></p> <ul> <li>WL test 是用來判斷兩圖是不是相同 (isomorphic) 的演算法 <ul> <li>此演算法可以如果判斷出不相同則保證不相同，反之則不保證</li> <li>演算法 \(O(\vert E\vert )\) <ol> <li>初始化使每個節點都有自己的顏色</li> <li>接下來每個點都蒐集自己 1-hop 鄰居的顏色</li> <li>自己本身節點顏色加上 1-hop 鄰居的顏色會形成一個 multi-set，並且有相同元素的節點會在下一輪的時候變成相同顏色 (就是 hash 操作)</li> <li>這個顏色更新會跑 k 輪，最後這個 \(c^{(k)}\) 就會彙整 k-hop 的結構</li> </ol> </li> </ul> \[c^{(k)}(v) := \text{hash table}(c^{(k-1)}(v), \{c^{(k-1)}(u) : u \in N(v)\})\] </li> <li>GIN 本質上來說也是在做一樣的事情，只是這個演算法中的 hash function 改成用 MLP model <ul> <li>WL test 用的是 hash function 來區分顏色 (<strong>discrete output: colors)</strong> </li> <li>GIN 用的是 MLP 來 mapping 該點是屬於什麼值 <strong>(continuous output: node embedding)</strong> </li> </ul> \[c^{(k)}(v) :=\mathsf{GINConv}\left(c^{(k)}(v), \left\{c^{(k)}(u) : u \in N(v)\right\}\right) := \mathsf{MLP}_{\phi} \left( (1 + \epsilon)\mathsf{MLP}_f(c^{(k)}(v)) + \sum_{u \in N(v)} \mathsf{MLP}_f(c^{(k)}(u)) \right)\] <blockquote> <p><strong>Note</strong></p> <ul> <li>GIN 的核心目標就是設計一個 aggregation function 能夠單射 (injective) 地將不同的圖結構 (multi-set) 投射到不同的 embedding <ul> <li>i.e. 無順序性 \(\{a, b\}\) = \(\{b, a\}\) / 可重複 \(\{a, a\}\) ≠ \(\{a\}\)</li> <li>所以直觀來看這個 learnable \(\epsilon\) 是為了能夠分出哪個是 node 本身哪個是鄰居，因為投射過後做 sum (if \(\epsilon = 0\)) 還是容易</li> </ul> </li> <li>證明上是先證明這個 aggregation function上面這個目標 function 存在，再利用 Universal Approximation Theorem 來證明 MLP 有這個能力能夠逼近任何 function</li> </ul> </blockquote> </li> <li>但是雖然 GIN 根據以上說明證明了<strong>在 message passing 這個架構上 (computation graph)</strong>理論表達能力最強，但是它存在一些限制。在機制上來說使用 GIN 就會不可行 (e.g. WL-1 limitation)，在應用時要特別避開，這個部分的內容下一章節會提到</li> <li> <p>Advantage Summary</p> <p><img src="/assets/notes/mlg-ch6-theory-of-gnns/image-6.png" alt="image 6" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> </ul> <h1 id="when-things-dont-go-as-planned">When things don’t go as planned</h1> <p><img src="/assets/notes/mlg-ch6-theory-of-gnns/image-7.png" alt="image 7" loading="lazy" style="max-width: 100%; height: auto;"></p> </article> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Chia-Fan Chu. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/assets/al_math/js/mathjax-setup.js"></script> <script defer src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6" crossorigin="anonymous"></script> <script src="/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/assets/al_img_tools/js/zoom.js"></script> <script defer src="/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-about",
+    title: "about",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/";
+    },
+  },{id: "nav-cv",
+          title: "CV",
+          description: "Education, experience, publications, and skills.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/cv/";
+          },
+        },{id: "nav-shared-notes",
+          title: "shared notes",
+          description: "Notes I keep while reading papers and working through courses. Shared as-is; most are living documents, so expect a few rough edges.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/notes/";
+          },
+        },{id: "notes-mastering-the-game-of-go-without-human-knowledge",
+          title: 'Mastering the Game of Go without Human Knowledge',
+          description: "PUCT math and why MCTS acts as a policy improvement operator.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/alphago-zero/";
+            },},{id: "notes-curriculum-learning-for-reinforcement-learning-domains-a-framework-and-survey",
+          title: 'Curriculum Learning for Reinforcement Learning Domains: A Framework and Survey',
+          description: "Section-by-section summary of the curriculum learning framework and its design dimensions.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-rl-survey/";
+            },},{id: "notes-a-survey-on-curriculum-learning",
+          title: 'A Survey on Curriculum Learning',
+          description: "Predefined vs automatic curricula and self-paced learning, summarized.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-survey/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-dual-attention-network-based-reinforcement-learning",
+          title: 'Flexible Job Shop Scheduling via Dual Attention Network-Based Reinforcement Learning',
+          description: "Dual-attention method with the math spelled out, plus a note on a missing ablation.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/daniel-dual-attention/";
+            },},{id: "notes-deep-reinforcement-learning-for-dynamic-scheduling-of-a-flexible-job-shop",
+          title: 'Deep Reinforcement Learning for Dynamic Scheduling of a Flexible Job Shop',
+          description: "MDP breakdown plus my comparison tables against related dynamic-scheduling designs.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-dynamic-fjs/";
+            },},{id: "notes-challenges-and-opportunities-in-deep-reinforcement-learning-with-graph-neural-networks",
+          title: 'Challenges and Opportunities in Deep Reinforcement Learning with Graph Neural Networks',
+          description: "Review of how DRL and GNNs combine, and where the open challenges are.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-gnn-review/";
+            },},{id: "notes-deep-rl-for-machine-scheduling-methodology-state-of-the-art-and-future-directions",
+          title: 'Deep RL for Machine Scheduling: Methodology, State of the Art, and Future Directions...',
+          description: "Taxonomy of state, action, and reward designs across the machine-scheduling literature.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-machine-scheduling-survey/";
+            },},{id: "notes-feudal-networks-for-hierarchical-reinforcement-learning",
+          title: 'FeUdal Networks for Hierarchical Reinforcement Learning',
+          description: "Manager/Worker architecture, transition policy gradient, and ablations explained.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/feudal-networks/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-graph-neural-network-and-deep-reinforcement-learning",
+          title: 'Flexible Job-Shop Scheduling via Graph Neural Network and Deep Reinforcement Learning',
+          description: "Detailed method and experiment summary of a key heterogeneous-graph baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-gnn-drl/";
+            },},{id: "notes-the-flexible-job-shop-scheduling-problem-a-review",
+          title: 'The Flexible Job Shop Scheduling Problem: A Review',
+          description: "Schedule classes, problem variants, and solution families, connected back to RL.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-review/";
+            },},{id: "notes-heterogeneous-graph-transformer",
+          title: 'Heterogeneous Graph Transformer',
+          description: "Mutual attention, message passing, and relative temporal encoding, with a worked example.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/heterogeneous-graph-transformer/";
+            },},{id: "notes-knowledge-enabled-multi-agent-drl-for-batch-machine-scheduling-in-semiconductor-fabrication",
+          title: 'Knowledge-enabled Multi-agent DRL for Batch Machine Scheduling in Semiconductor Fabrication',
+          description: "IRL plus MADRL pipeline, reward design, and my critique of it.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/knowledge-madrl-semiconductor/";
+            },},{id: "notes-list-scheduling-and-beam-search-methods-for-the-fjsp-with-sequencing-flexibility",
+          title: 'List Scheduling and Beam Search Methods for the FJSP with Sequencing Flexibility',
+          description: "Problem, method, and results of a strong non-learning FJSP baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/list-scheduling-beam-search-fjsp/";
+            },},{id: "notes-monte-carlo-tree-search-a-review-of-recent-modifications-and-applications",
+          title: 'Monte Carlo Tree Search: A Review of Recent Modifications and Applications',
+          description: "Survey walkthrough of the MCTS phases and variants, with my notes on relevance to scheduling.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mcts-review/";
+            },},{id: "notes-ch-0-introduction",
+          title: 'Ch 0 Introduction',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch0-introduction/";
+            },},{id: "notes-ch-1-traditional-machine-learning-on-graphs",
+          title: 'Ch 1 Traditional Machine Learning on Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch1-traditional-ml-on-graphs/";
+            },},{id: "notes-ch-10-11-15-knowledge-graph",
+          title: 'Ch 10, 11, 15 Knowledge Graph',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch10-11-15-knowledge-graph/";
+            },},{id: "notes-ch-12-gnns-for-recommender-systems",
+          title: 'Ch 12 GNNs for Recommender Systems',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch12-gnns-for-recommender-systems/";
+            },},{id: "notes-ch-14-advanced-topics-in-graph-neural-networks",
+          title: 'Ch 14 Advanced Topics in Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch14-advanced-topics/";
+            },},{id: "notes-ch-16-deep-generative-models-for-graphs",
+          title: 'Ch 16 Deep Generative Models for Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch16-deep-generative-models/";
+            },},{id: "notes-ch-17-geometric-graph-learning",
+          title: 'Ch 17 Geometric Graph Learning',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch17-geometric-graph-learning/";
+            },},{id: "notes-ch-19-label-propagation",
+          title: 'Ch 19 Label Propagation',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch19-label-propagation/";
+            },},{id: "notes-ch-2-node-embedding",
+          title: 'Ch 2 Node Embedding',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch2-node-embedding/";
+            },},{id: "notes-ch-20-scaling-up-gnns",
+          title: 'Ch 20 Scaling Up GNNs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch20-scaling-up-gnns/";
+            },},{id: "notes-ch-21-trustworthy-graph-ai",
+          title: 'Ch 21 Trustworthy Graph AI',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch21-trustworthy-graph-ai/";
+            },},{id: "notes-ch-3-graph-neural-networks",
+          title: 'Ch 3 Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch3-graph-neural-networks/";
+            },},{id: "notes-ch-4-a-general-perspective-on-graph-neural-networks",
+          title: 'Ch 4 A General Perspective on Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch4-general-perspective-on-gnn/";
+            },},{id: "notes-ch-5-gnn-augmentation-and-training",
+          title: 'Ch 5 GNN Augmentation and Training',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch5-gnn-augmentation-and-training/";
+            },},{id: "notes-ch-6-theory-of-graph-neural-networks",
+          title: 'Ch 6 Theory of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch6-theory-of-gnns/";
+            },},{id: "notes-ch-7-limits-of-graph-neural-networks",
+          title: 'Ch 7 Limits of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch7-limits-of-gnns/";
+            },},{id: "notes-ch-8-graph-transformers",
+          title: 'Ch 8 Graph Transformers',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch8-graph-transformers/";
+            },},{id: "notes-ch-9-machine-learning-with-heterogeneous-graphs",
+          title: 'Ch 9 Machine Learning with Heterogeneous Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch9-heterogeneous-graphs/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map plus my conclusions on how to design and train a GNN.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-overview/";
+            },},{id: "notes-clustering-method",
+          title: 'Clustering Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-clustering-method/";
+            },},{id: "notes-factor-analysis",
+          title: 'Factor Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-factor-analysis/";
+            },},{id: "notes-prerequisite",
+          title: 'Prerequisite',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-prerequisite/";
+            },},{id: "notes-principal-component-analysis",
+          title: 'Principal Component Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-principal-component-analysis/";
+            },},{id: "notes-ch-14-general-purpose-procedures-for-deterministic-scheduling",
+          title: 'Ch 14 General Purpose Procedures for Deterministic Scheduling',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch14-general-purpose-procedures/";
+            },},{id: "notes-ch-15-more-advance-general-purpose-procedures",
+          title: 'Ch 15 More Advance General Purpose Procedures',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch15-more-advance-general-purpose-procedures/";
+            },},{id: "notes-ch-16-modeling-and-solving-scheduling-problems-in-practice",
+          title: 'Ch 16 Modeling and Solving Scheduling Problems in Practice',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch16-modeling-and-solving-scheduling-problems/";
+            },},{id: "notes-ch-2-deterministic-models-preliminaries",
+          title: 'Ch 2 Deterministic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch2-deterministic-models-preliminaries/";
+            },},{id: "notes-ch-3-single-machine-method",
+          title: 'Ch 3 Single Machine Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch3-single-machine-method/";
+            },},{id: "notes-ch-4-advance-single-machine",
+          title: 'Ch 4 Advance Single Machine',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch4-advance-single-machine/";
+            },},{id: "notes-ch-5-parallel-machine-model",
+          title: 'Ch 5 Parallel Machine Model',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch5-parallel-machine-model/";
+            },},{id: "notes-ch-6-flow-shop",
+          title: 'Ch 6 Flow Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch6-flow-shop/";
+            },},{id: "notes-ch-7-job-shop",
+          title: 'Ch 7 Job Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch7-job-shop/";
+            },},{id: "notes-ch-8-open-shop",
+          title: 'Ch 8 Open Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch8-open-shop/";
+            },},{id: "notes-ch-9-stochastic-models-preliminaries",
+          title: 'Ch 9 Stochastic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch9-stochastic-models-preliminaries/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map: which chapters are covered and how they fit together.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-overview/";
+            },},{id: "notes-real-time-scheduling-for-dynamic-partial-no-wait-multiobjective-flexible-job-shop-by-drl",
+          title: 'Real-Time Scheduling for Dynamic Partial-No-Wait Multiobjective Flexible Job Shop by DRL',
+          description: "Hierarchical multi-agent MDP with rule tables and Pareto metrics.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/realtime-partial-no-wait-fjs/";
+            },},{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%6F%6B%75%6D%6F%63%68%75%35%35@%67%6D%61%69%6C.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-github',
+        title: 'GitHub',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://github.com/okumochu", "_blank");
+        },
+      },{
+        id: 'social-linkedin',
+        title: 'LinkedIn',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.linkedin.com/in/chia-fan-chu", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=BfaixEUAAAAJ", "_blank");
+        },
+      },];
+
+</script> <script src="/assets/al_search/js/shortcut-key.js"></script> </body> </html>

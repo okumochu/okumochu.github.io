@@ -1,0 +1,317 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Clustering Method | Chia-Fan Chu </title> <meta name="author" content="Chia-Fan Chu"> <meta name="description" content="Chia-Fan Chu (禇家帆): graduate student at National Taiwan University working on reinforcement learning for production scheduling and applied operations research. "> <meta name="keywords" content="chia-fan chu, reinforcement learning, scheduling, operations research, national taiwan university"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;%E2%9A%9B%EF%B8%8F&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/assets/css/main.css?v=f0b101217084a90093badfe99ff9a7d1"> <link rel="canonical" href="https://okumochu.github.io/notes/mva-clustering-method/"> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/"> <span class="font-weight-bold">Chia-Fan</span> Chu </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/cv/">CV </a> </li> <li class="nav-item active"> <a class="nav-link" href="/notes/">shared notes <span class="sr-only">(current)</span> </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title">Clustering Method</h1> <p class="post-description"></p> </header> <article> <h3 id="in-general">In general</h3> <ul> <li>The goal of Clustering: 在沒有 label 的情況下找出資料中「自然的分組 (natural grouping)」。</li> <li>Clustering vs Classification: <ul> <li> <strong>Clustering</strong> (unsupervised)：不知道有幾群、也不知道哪個 item 屬於哪群。任務是 explore data structure。</li> <li> <strong>Classification</strong> (supervised)：群數和成員都已知，目標是把新的 item 分到已知的某一群。</li> </ul> </li> <li>跟 <a href="/notes/mva-principal-component-analysis/">Principal Component Analysis</a> 與 <a href="/notes/mva-factor-analysis/">Factor Analysis</a> 的差別：PCA / FA 是在處理變數之間的線性關係 (variance / covariance)，clustering 則是在 <strong>item 層級</strong>找結構。要做 clustering 必須先有一個量化「相似度」的方式。</li> <li>兩條路線 (這份 note 大多數方法都圍繞這個對立展開)： <ul> <li> <strong>Cluster items</strong>：用「距離」衡量 item 之間的接近程度。</li> <li> <strong>Cluster variables</strong>：用「相關係數」衡量變數之間的關聯。</li> </ul> </li> </ul> <blockquote> <p><strong>跟前兩個 topic 的銜接</strong> PCA 把變數重排成 uncorrelated component，FA 把變數的 covariance 拆成共同因子 + 特殊因子。Clustering 不再對「變數空間」動手，而是把 \(n\) 個 observation 看成 \(\mathbb{R}^p\) 中的點集，去找這些點的群聚結構。三者其實是 multivariate analysis 的三種補位：PCA 重組 variance、FA 解釋 covariance、Clustering 找 grouping。</p> </blockquote> <hr> <h3 id="similarity-measures">Similarity Measures</h3> <h6 id="considerations">Considerations</h6> <p>定義 similarity measure 時要考慮：</p> <ul> <li>變數性質 (discrete / continuous / binary)</li> <li>量測尺度 (nominal / ordinal / interval / ratio)</li> <li>subject matter knowledge</li> </ul> <h6 id="distances-for-pairs-of-items">Distances for Pairs of Items</h6> <p>給定兩個 \(p\) 維 item \(x = (x_1, \dots, x_p)^T\)、\(y = (y_1, \dots, y_p)^T\)，常見距離有：</p> <ul> <li> <strong>Euclidean</strong>: \(d(x, y) = \sqrt{(x_1 - y_1)^2 + \cdots + (x_p - y_p)^2} = \sqrt{(x - y)^T(x - y)}\)</li> <li> <strong>Statistical distance</strong> (帶 weighting matrix \(A\)，通常是 \(\Sigma^{-1}\)，等同 Mahalanobis): \(d(x, y) = \sqrt{(x - y)^T A (x - y)}\)</li> <li> <strong>Minkowski metric</strong>: \(d(x, y) = \left[\sum_{i=1}^p |x_i - y_i|^m\right]^{1/m}\) <ul> <li>\(m = 1\): city-block (Manhattan) distance</li> <li>\(m = 2\): Euclidean</li> </ul> </li> </ul> <h6 id="true-distance-的條件">True distance 的條件</h6> <p>能用「真距離」最好：</p> <ol> <li>\(d(x, y) = d(y, x)\) (對稱性)</li> <li>\(d(x, y) &gt; 0\) if \(x \neq y\)</li> <li>\(d(x, y) = 0\) if \(x = y\)</li> <li>\(d(x, y) \leq d(x, z) + d(z, y)\) (三角不等式)</li> </ol> <p>但實務上多數 clustering algorithm 也吃 subjectively assigned distances。</p> <hr> <h6 id="similarity-coefficients-for-binary-items">Similarity Coefficients for Binary Items</h6> <ul> <li>Binary 變數 1 / 0 通常代表「特徵存在 / 不存在」。直接用 squared Euclidean distance 等於數 mismatch 數，但這會把 1-1 match 和 0-0 match 視為同等重要，<strong>很多時候不合理</strong> (例如「兩人都沒有罕見疾病」不該跟「兩人都有」一樣有意義)。</li> <li>為了給 1-1 / 0-0 / mismatch 不同權重，整理成 contingency table：</li> </ul> <table> <thead> <tr> <th> </th> <th>\(j\) = 1</th> <th>\(j\) = 0</th> <th>Totals</th> </tr> </thead> <tbody> <tr> <td>\(i\) = 1</td> <td>\(a\)</td> <td>\(b\)</td> <td>\(a+b\)</td> </tr> <tr> <td>\(i\) = 0</td> <td>\(c\)</td> <td>\(d\)</td> <td>\(c+d\)</td> </tr> <tr> <td>Totals</td> <td>\(a+c\)</td> <td>\(b+d\)</td> <td>\(p = a+b+c+d\)</td> </tr> </tbody> </table> <ul> <li>8 種常用 coefficient：</li> </ul> <table> <thead> <tr> <th>#</th> <th>Coefficient</th> <th>Rationale</th> </tr> </thead> <tbody> <tr> <td>1</td> <td>\(\dfrac{a+d}{p}\)</td> <td>1-1 與 0-0 等權重</td> </tr> <tr> <td>2</td> <td>\(\dfrac{2(a+d)}{2(a+d)+b+c}\)</td> <td>1-1 與 0-0 雙權重</td> </tr> <tr> <td>3</td> <td>\(\dfrac{a+d}{a+d+2(b+c)}\)</td> <td>unmatched pair 雙權重</td> </tr> <tr> <td>4</td> <td>\(\dfrac{a}{p}\)</td> <td>0-0 不算 numerator</td> </tr> <tr> <td>5</td> <td>\(\dfrac{a}{a+b+c}\)</td> <td>0-0 完全不算 (Jaccard)</td> </tr> <tr> <td>6</td> <td>\(\dfrac{2a}{2a+b+c}\)</td> <td>0-0 不算，1-1 雙權重 (Dice)</td> </tr> <tr> <td>7</td> <td>\(\dfrac{a}{a+2(b+c)}\)</td> <td>0-0 不算，mismatch 雙權重</td> </tr> <tr> <td>8</td> <td>\(\dfrac{a}{b+c}\)</td> <td>match / mismatch ratio (excl. 0-0)</td> </tr> </tbody> </table> <ul> <li> <strong>Monotonic relations</strong>: <ul> <li>Coefficients 1, 2, 3 互為 monotone 函數：若 \(\frac{a_I+d_I}{p} \geq \frac{a_{II}+d_{II} }{p}\)，則 coeff. 2、3 也滿足相同方向不等式。</li> <li>同理 5, 6, 7 也是 monotonically related。</li> </ul> </li> <li> <strong>意義</strong>：在 hierarchical clustering 中只要 ranking 一樣就會給同樣的 dendrogram (對 single / complete linkage 而言)，所以這三組裡選哪一個其實效果一樣。</li> </ul> <blockquote> <p><strong>怎麼挑 coefficient</strong> 沒有絕對答案。重點是想清楚：「兩個 item 都缺某個特徵」對你的問題有沒有資訊？有的話用包含 0-0 的 (1, 2, 3)；沒有 (例如 sparse 的 presence data) 就用 Jaccard 系列 (5, 6, 7)。</p> </blockquote> <hr> <h6 id="similarity-measures-for-pairs-of-variables">Similarity Measures for Pairs of Variables</h6> <ul> <li>對 <strong>變數</strong>做分群，常用 sample correlation 當 similarity，必要時把負相關取絕對值。</li> <li>二元變數時，用同樣的 contingency table，sample correlation 是 \(r = \frac{ad - bc}{[(a+b)(c+d)(a+c)(b+d)]^{1/2} }.\)</li> <li>「item 用 distance、variable 用 correlation」是這份 note 的固定 convention。</li> </ul> <hr> <h3 id="hierarchical-clustering-methods">Hierarchical Clustering Methods</h3> <ul> <li>動機：找 reasonable cluster，但不需要枚舉所有 partition。</li> <li>兩個方向： <ul> <li> <strong>Agglomerative</strong> (bottom-up)：每個 item 自己一群，每次合併最像的兩群，直到全部變成一群。</li> <li> <strong>Divisive</strong> (top-down)：所有 item 一群，每次切出最不像的子群，直到每個 item 自己一群。</li> </ul> </li> <li>結果可以畫成 <strong>dendrogram</strong> (樹狀圖)，y 軸是合併 / 分裂時的距離。</li> </ul> <h4 id="agglomerative-methods">Agglomerative Methods</h4> <h6 id="linkage-methods-cluster-與-cluster-之間的距離怎麼定">Linkage Methods (cluster 與 cluster 之間的距離怎麼定？)</h6> <p>合併之後得到的新 cluster 跟其他 cluster 的距離，要用一個 linkage rule 算出來：</p> <ul> <li> <strong>Single linkage</strong> (nearest neighbor)：兩 cluster 中<strong>最近</strong>那對點的距離。 \(d_{(UV)W} = \min\{d_{UW}, d_{VW}\}\)</li> <li> <strong>Complete linkage</strong> (farthest neighbor)：兩 cluster 中<strong>最遠</strong>那對點的距離。 \(d_{(UV)W} = \max\{d_{UW}, d_{VW}\}\)</li> <li> <strong>Average linkage</strong>：兩 cluster 中<strong>所有 pair 的平均</strong>距離。 \(d_{(UV)W} = \frac{\sum_{i \in (UV)} \sum_{k \in W} d_{ik} }{N_{(UV)} N_W}\)</li> </ul> <h6 id="algorithm-for-n-items">Algorithm (for \(N\) items)</h6> <ol> <li>從 \(N\) 個 single-item cluster 與 \(N \times N\) 對稱距離矩陣 \(D = \{d_{ik}\}\) 開始。</li> <li>在 \(D\) 中找最近的一對 cluster \(U, V\)，距離為 \(d_{UV}\)。</li> <li>合併成 \((UV)\)，更新 \(D\): <ol> <li>刪掉 \(U, V\) 的列與行。</li> <li>加入 \((UV)\) 與所有剩下 cluster 的距離 (用所選的 linkage rule)。</li> </ol> </li> <li>重複 step 2-3 共 \(N-1\) 次，記錄合併順序與距離。</li> </ol> <h6 id="properties-of-different-linkages">Properties of Different Linkages</h6> <p>| Linkage | 對距離 ranking 敏感嗎？ | 易產生什麼形狀？ | |—|—|—| | Single | <strong>不敏感</strong> (只要 ranking 不變，dendrogram 不變) | chain (拉長型) | | Complete | <strong>不敏感</strong> (同上) | compact (緊密球狀) | | Average | <strong>敏感</strong> (新距離可能改變排序) | 介於兩者之間 |</p> <blockquote> <p><strong>三種 linkage 的個性</strong> Single 看「最強的橋」，所以兩群只要有一對點接近就會被連起來，容易形成 chain；complete 看「最弱的環」，所以一定要兩群整體都接近才會合併，傾向小而緊；average 折衷。實務上通常先三個都跑看 dendrogram 哪個最穩定。</p> </blockquote> <hr> <h6 id="wards-hierarchical-clustering">Ward’s Hierarchical Clustering</h6> <ul> <li>動機：每次合併都選「讓 within-cluster variance 增加最少」的一對 cluster。這個想法直接對應到 ANOVA / regression 中的 sum of squares 概念。</li> <li>對 cluster \(k\) 的 <strong>error sum of squares (ESS)</strong>： \(\mathrm{ESS}_k = \sum_{i=1}^{N_k} (x_i - \bar x_k)^T (x_i - \bar x_k), \qquad \bar x_k = \frac{1}{N_k} \sum_{i=1}^{N_k} x_i.\)</li> <li>整體 \(\mathrm{ESS} = \mathrm{ESS}_1 + \cdots + \mathrm{ESS}_K\)。</li> <li> <strong>Algorithm</strong>: <ol> <li>初始：每個 cluster 只有一個 item，所有 \(\mathrm{ESS}_k = 0\)，總 \(\mathrm{ESS} = 0\)。</li> <li>試遍所有 cluster pair 的合併，選讓 \(\mathrm{ESS}\) <strong>增加最少</strong>的 pair 合併。</li> <li>重複，直到剩一個 cluster。最後 \(\mathrm{ESS} = \sum_{i=1}^N (x_i - \bar x)^T(x_i - \bar x)\) (整體變異)。</li> </ol> </li> </ul> <blockquote> <p><strong>Ward’s 跟 K-means 的隱性對應</strong> Ward’s 的 objective 跟 K-means 都是「最小化 within-cluster sum of squares」，差別在 Ward’s 是 hierarchical (一旦合併就不能拆)，K-means 是 partitioning (每輪重新分配)。後面會看到，假設所有 cluster 共享 \(\Sigma_k = \eta I\) 的 mixture model 也跟 K-means / Ward’s 等價，三者其實在解同一個問題的不同變形。</p> </blockquote> <hr> <h4 id="divisive-methods">Divisive Methods</h4> <h6 id="basic-division-algorithm-diana-like">Basic Division Algorithm (DIANA-like)</h6> <ol> <li>在當前 cluster 裡找 <strong>跟其他 item 平均不相似度最高</strong>的那個 item，把它抽出來成立 splinter group \(A\)，剩下的是 \(B\)。</li> <li>對 \(B\) 中每個 item 計算： <ul> <li>\((1)\): 跟 \(B\) 中其他 item 的平均不相似度。</li> <li>\((2)\): 跟 \(A\) 中所有 item 的平均不相似度。</li> <li>算 \((1) - (2)\)。</li> </ul> </li> <li>若所有差都 \(\leq 0\)，停。否則把差最大且 \(&gt; 0\) 的 item 移到 \(A\)，回到 step 2。</li> <li>得到 binary split \(A, B\) 之後，對 \(A, B\) 各自再跑一次同樣流程，直到每個 cluster 只剩一個 item。</li> </ol> <blockquote> <p><strong>Divisive vs Agglomerative</strong> Agglomerative 在 step 1 的 \(\binom{N}{2}\) pair 中挑一對合併，計算量隨 \(N\) 大致 \(O(N^2)\) per step。Divisive 每次切會牽涉到 \(2^{N-1} - 1\) 種可能 binary split，理論上更貴，所以實務上多用 agglomerative。</p> </blockquote> <hr> <h6 id="comments-on-hierarchical-methods">Comments on Hierarchical Methods</h6> <ul> <li> <strong>對 outlier 敏感</strong>：因為沒有 model，沒有正式處理 error / variation。</li> <li> <strong>不會 reallocate</strong>：一旦合併或分裂就回不去了，前面的錯誤會一路帶下去。</li> <li> <strong>建議</strong>：同一份資料試多種方法 (single / complete / average / Ward’s) 與多種距離，互相對照。</li> <li> <strong>穩定性檢查</strong>：在資料加上小擾動後重跑，看結果是否仍然一致。</li> <li> <strong>Ties</strong>：距離矩陣中相等的距離會產生多解，要意識到不同 tie-breaking rule 可能 dendrogram 完全不同。</li> </ul> <h6 id="inversions">Inversions</h6> <ul> <li> <strong>Inversion</strong>: 後面合併的距離比前面合併的距離還小 (dendrogram 上出現「往下彎」的線)。</li> <li>這會破壞 dendrogram 的 ultrametric 性質，讓圖形難以解讀。</li> <li>主要發生在 <strong>centroid method</strong> 與 <strong>median method</strong> 上 (這兩個方法用 cluster 質心更新距離，新質心可能比原本兩個 cluster 都靠近某個 item)。</li> <li>出現 inversion 通常表示資料根本沒有清晰的 cluster 結構。</li> </ul> <hr> <h3 id="partitioning-clustering-methods">Partitioning Clustering Methods</h3> <h4 id="k-means-method">K-means Method</h4> <h6 id="algorithm">Algorithm</h6> <ol> <li>給定 \(K\)，要嘛 random partition \(N\) 個 item 成 \(K\) 群，要嘛指定 \(K\) 個 seed point。</li> <li>對每個 item，把它指派給「<strong>質心 (centroid) 最近</strong>」的 cluster；質心隨之更新 (受影響的兩個 cluster 都要重算)。</li> <li>重複 step 2，直到沒有 reassignment。</li> </ol> <h6 id="概念">概念</h6> <ul> <li>等價於最小化 within-cluster sum of squares： \(\sum_{k=1}^K \sum_{i=1}^{N_k} (x_{ki} - \bar x_k)^T(x_{ki} - \bar x_k).\)</li> <li>K-means 找的是 <strong>local minimum</strong>，不是全域最佳；換 initial partition 重跑可能得到不同結果。</li> <li>只能用於 <strong>numeric</strong> 資料 (因為要算 mean)。</li> <li>對 outlier 敏感 (mean 會被拉走)。</li> </ul> <blockquote> <p><strong>K-means 跟 hierarchical 的本質差異</strong> Hierarchical 一旦合併就不能拆，所以早期錯誤會永遠帶著。K-means 每輪都重新分配，理論上可以 escape 早期錯誤，但代價是 (1) 要先決定 \(K\)，(2) 結果隨 initial 變動，所以「跑很多次取最好的」幾乎是必要操作。</p> </blockquote> <hr> <h4 id="k-medoids-method-pam">K-medoids Method (PAM)</h4> <ul> <li>動機：把 K-means 的「centroid」換成「medoid」(資料中真實存在的代表點)。</li> <li> <strong>Medoid</strong>: 一個 cluster 中跟其他成員平均不相似度最小的那個 item (i.e. 最中心的真實 data point)。</li> <li>優點： <ul> <li>對 outlier 比 K-means 更 robust (medoid 不像 mean 那樣會被拉走)。</li> <li>適用 categorical data (只要能定義 pairwise dissimilarity 就能跑，不需要算 mean)。</li> </ul> </li> <li> <strong>PAM (Partitioning Around Medoids) algorithm</strong>: <ol> <li>從 \(N\) 個 item 中選 \(K\) 個當 medoid。</li> <li>把每個非 medoid 指派給最近的 medoid。</li> <li>對每個 cluster，看裡面哪個 item 換上去能讓 average dissimilarity 下降最多，就把它換成新 medoid (swapping)。</li> <li>若有 medoid 改變，回 step 2；否則結束。</li> </ol> </li> <li>每輪 swapping 的 time complexity 是 \(O(K(n-K)^2)\)。</li> </ul> <hr> <h3 id="determining-the-number-of-clusters">Determining the Number of Clusters</h3> <p>挑 \(K\) 跟 <a href="/notes/mva-principal-component-analysis/">Principal Component Analysis</a> 中挑 PC 數類似：沒有絕對標準，要靠多種 heuristic 互相驗證。</p> <h4 id="elbow-method">Elbow Method</h4> <p>最小化 within-cluster variability 相對於 between-cluster variability。常見 criteria：</p> <ul> <li> <strong>Wilks’ lambda</strong>: \(\dfrac{\vert B\vert }{\vert B + W\vert }\) (越小越好)</li> <li> <strong>Lawley-Hotelling trace</strong>: \(\mathrm{tr}(BW^{-1})\) (越大越好)</li> <li> <strong>Within-cluster sum of squares</strong>: \(\sum_{k=1}^K \sum_{i=1}^{N_k} (x_{ki} - \bar x_k)^T(x_{ki} - \bar x_k)\) (越小越好)</li> </ul> <p>把這些值對 \(K\) 畫圖，找曲線出現「彎折 (elbow)」的位置 (跟 PCA 的 scree plot 同樣 spirit)。</p> <h4 id="silhouette-method">Silhouette Method</h4> <p>評估每個 item 在當前分群下「歸對群了沒有」。對 item \(i\) 定義 \(s(i) = \frac{b(i) - a(i)}{\max\{a(i), b(i)\} }\) 其中：</p> <ul> <li>\(a(i) = \dfrac{1}{\vert C_I\vert - 1} \displaystyle\sum_{j \in C_I, j \neq i} d(i, j)\)：\(i\) 跟自己 cluster 內其他 item 的平均距離。</li> <li>\(b(i) = \displaystyle\min_{J \neq I} \dfrac{1}{\vert C_J\vert } \sum_{j \in C_J} d(i, j)\)：\(i\) 跟「最近的別群」item 的平均距離。</li> </ul> <p>性質：</p> <ul> <li>\(-1 \leq s(i) \leq 1\)。</li> <li>\(s(i) \approx 1\)：\(i\) 很適合留在當前 cluster。</li> <li>\(s(i) \approx 0\)：在邊界上，模稜兩可。</li> <li>\(s(i) \approx -1\)：應該換到 neighbouring cluster。</li> </ul> <h6 id="silhouette-coefficient-sc">Silhouette Coefficient (SC)</h6> <p>Kaufman 與 Rousseeuw 把 average silhouette 對 \(K\) 做圖，<strong>最大值</strong>叫 silhouette coefficient，並給出主觀詮釋：</p> <table> <thead> <tr> <th>SC</th> <th>Interpretation</th> </tr> </thead> <tbody> <tr> <td>\(0.71 - 1.00\)</td> <td>strong structure</td> </tr> <tr> <td>\(0.51 - 0.70\)</td> <td>reasonable structure</td> </tr> <tr> <td>\(0.26 - 0.50\)</td> <td>weak / could be artificial</td> </tr> <tr> <td>\(\leq 0.25\)</td> <td>no substantial structure</td> </tr> </tbody> </table> <blockquote> <p><strong>Elbow vs Silhouette 怎麼選</strong> Elbow 看「再加一群還能降多少 within-SS」，但「彎折點」常常很主觀 (尤其曲線平滑時)。Silhouette 直接量化「分群品質」，比較有絕對基準 (有 SC 表)。建議兩個都看、互相印證。</p> </blockquote> <hr> <h3 id="clustering-based-on-statistical-model">Clustering Based on Statistical Model</h3> <h6 id="motivation">Motivation</h6> <ul> <li>Hierarchical 與 partitioning method 都是 intuitive 的 procedure，<strong>沒有 model 解釋資料怎麼產生</strong>。所以也無法討論「這個 cluster 是真的還是雜訊」。</li> <li>引入 statistical model 之後就能用 likelihood 來做 inference (model selection、cluster assignment 都 model-based)。最常見的 model 是 <strong>mixture model</strong>。</li> </ul> <h6 id="mixture-model">Mixture Model</h6> <ul> <li>\(X_i\): 第 \(i\) 個 object 的 \(p \times 1\) 隨機向量。</li> <li>\(S_i \in \{1, \dots, K\}\): 第 \(i\) 個 object 的 latent cluster membership，\(P(S_i = k) = p_k\)。</li> <li>邊際密度寫成 \(K\) 個 component density 的加權平均： \(f_{\mathrm{Mix} }(x_i) = \sum_{k=1}^K P(S_i = k)\, f(x_i | S_i = k) = \sum_{k=1}^K p_k\, f_k(x_i)\) 其中 \(p_k \geq 0\)、\(\sum_{k=1}^K p_k = 1\)。</li> <li>直觀：\(p_k\) 是 cluster \(k\) 的比例，\(f_k\) 是 cluster \(k\) 內資料的 density。資料就是「先抽 \(S_i\)，再從 \(f_{S_i}\) 抽 \(x_i\)」這個雙層過程。</li> </ul> <h6 id="normal-mixture-model">Normal Mixture Model</h6> <p>最常見的選擇：每個 component 都是 multivariate normal，\(f_k = N_p(\mu_k, \Sigma_k)\)。 \(f_{\mathrm{Mix} }(x | \mu_1, \Sigma_1, \dots, \mu_K, \Sigma_K) = \sum_{k=1}^K p_k \frac{1}{(2\pi)^{p/2} |\Sigma_k|^{1/2} } \exp\!\left(-\tfrac{1}{2}(x - \mu_k)^T \Sigma_k^{-1}(x - \mu_k)\right)\)</p> <ul> <li>每個 cluster 是 ellipsoidal，中心點密度最高 (這是 normal 的形狀，跟 Properties of multivariate normal 一致)。</li> <li>Likelihood (對 \(N\) 個 object，\(K\) 固定)： \(L(p_1, \dots, p_K, \mu_1, \Sigma_1, \dots, \mu_K, \Sigma_K) = \prod_{i=1}^N f_{\mathrm{Mix} }(x_i | \mu_1, \Sigma_1, \dots, \mu_K, \Sigma_K)\)</li> <li>用 EM algorithm 解 MLE (因為 \(S_i\) 是 latent，跟 <a href="/notes/mva-factor-analysis/">Factor Analysis</a> 中 \(F\) 是 latent 的處理 spirit 類似)。</li> </ul> <h6 id="為什麼一定要對-sigma_k-加限制">為什麼一定要對 \(\Sigma_k\) 加限制？</h6> <p>完全自由的 \(\Sigma_k\) 參數量為 \(K \cdot \frac{1}{2}(p+1)(p+2) - 1\)，當 \(N\) 不夠大時會 over-parameterize。常見限制如下表：</p> <table> <thead> <tr> <th>\(\Sigma_k\)</th> <th>形狀</th> <th>參數總數</th> </tr> </thead> <tbody> <tr> <td>無限制</td> <td>Ellipsoidal (各群獨立)</td> <td>\(K \cdot \frac{1}{2}(p+1)(p+2) - 1\)</td> </tr> <tr> <td>\(\Sigma_k = \eta I\)</td> <td>Spherical, 等大小</td> <td>\(K(p+1)\)</td> </tr> <tr> <td>\(\Sigma_k = \eta_k I\)</td> <td>Spherical, 不同大小</td> <td>\(K(p+2) - 1\)</td> </tr> <tr> <td>\(\Sigma_k = \eta\,\mathrm{diag}(\lambda_1, \dots, \lambda_p)\)</td> <td>軸對齊 ellipsoidal, 共享形狀</td> <td>\(K(p+2) + p - 1\)</td> </tr> </tbody> </table> <p>更完整的分類 (mclust 中的 EII / VVV / VEV … 系列) 用 \(\Sigma_k = \lambda_k D_k A_k D_k^T\) 拆成 <strong>volume / shape / orientation</strong> 三個面向，每個面向各自決定要不要在 \(k\) 之間共享。</p> <blockquote> <p><strong>跟 K-means / Ward’s 的關係</strong> 假設 \(\Sigma_k = \eta I\) (所有 cluster 球狀且大小相等)，加上 equal mixing proportions，normal mixture model 的 MLE 跟 K-means / Ward’s 的解幾乎一致。所以 K-means 可以視為 normal mixture model 的「最簡 case」。</p> </blockquote> <hr> <h6 id="model-selection-aic-bic">Model Selection (AIC, BIC)</h6> <ul> <li>一旦把 clustering 嵌進 statistical model，「選 \(K\)」就變成「選 model」。標準工具就是 penalized likelihood： \(-2 \ln L_{\max} + \text{Penalty}.\)</li> <li>對固定 \(K\) 的 maximised likelihood: \(L_{\max} = L(\hat p_1, \dots, \hat p_K, \hat\mu_1, \hat\Sigma_1, \dots, \hat\mu_K, \hat\Sigma_K).\)</li> <li> <strong>AIC</strong>: \(\mathrm{AIC} = -2 \ln L_{\max} + 2 \cdot (\#\text{ of parameters})\)</li> <li> <strong>BIC</strong>: \(\mathrm{BIC} = -2 \ln L_{\max} + 2 \ln(N) \cdot (\#\text{ of parameters})\)</li> <li>選 AIC (或 BIC) 最小的 model。BIC penalty 較重 (因為 \(\ln N \geq 2\) 當 \(N \geq 8\))，傾向選小一點的 \(K\)。</li> </ul> <h6 id="cluster-labeling">Cluster Labeling</h6> <p>有了 MLE 之後，對每個 object \(i\) 算 posterior probability: \(\hat\theta_{ik} = \hat P(S_i = k | x_i) = \frac{\hat p_k\, \hat f_k(x_i)}{\sum_{k=1}^K \hat p_k\, \hat f_k(x_i)}.\) 把 \(i\) 指派到 \(\hat\theta_{ik}\) 最大的 cluster。這也是 EM 中 E-step 計算的 responsibility。</p> <blockquote> <p><strong>Soft vs hard assignment</strong> \(\hat\theta_{ik}\) 本身是「soft assignment」：它告訴你 object 在不同 cluster 之間的歸屬機率。跟 K-means 直接 hard assign 不同，mixture model 自然提供「邊界不確定的 object」這個概念，可以拿來做 outlier detection。</p> </blockquote> <hr> <h3 id="self-organizing-maps-som">Self-Organizing Maps (SOM)</h3> <h6 id="what-is-som">What is SOM</h6> <ul> <li>由 Teuvo Kohonen 在 1980 年代提出，又稱 <strong>Kohonen map</strong>。</li> <li>屬於 unsupervised neural network，但不是用 error backpropagation，而是 <strong>competitive learning</strong>。</li> <li>靈感來自大腦皮質：相鄰神經元負責相似功能，輸出相似的神經元在空間上彼此靠近。</li> <li>目標：把高維資料 project 到一個 <strong>2D grid of nodes</strong>，每個 node 代表一個小 cluster，且 grid 上相鄰的 node 對應原空間中相近的資料。</li> </ul> <h6 id="output-som-plot">Output: SOM Plot</h6> <ul> <li>一張由 nodes (artificial neurons) 構成的網格圖，常用 hexagonal grid (視覺上比 rectangular 自然，相鄰關係對稱)。</li> <li>每個 node \(v\) 配一個跟 input 相同維度的 weight vector \(W_v\)；訓練後 \(W_v\) 就是該 node 代表的 prototype。</li> </ul> <h6 id="training-algorithm">Training Algorithm</h6> <p>每個 iteration \(t\)：</p> <ol> <li>抽一筆資料 \(X(t)\)。</li> <li>找 <strong>best matching unit (BMU)</strong>: 跟 \(X(t)\) 最像的 node \(u\) (通常用 Euclidean distance): \(u = \arg\min_v \|X(t) - W_v(t)\|.\)</li> <li>更新 BMU 與其 <strong>鄰居</strong> 的 weight vector: \(W_v(t+1) = W_v(t) + \eta(t)\,\phi(u, v, t)\,(X(t) - W_v(t))\) <ul> <li>\(\eta(t)\): learning rate (隨時間衰減)。</li> <li>\(\phi(u, v, t)\): neighborhood function，鄰居越遠值越小。</li> </ul> </li> <li>重複直到收斂或達 max steps。</li> </ol> <h6 id="common-choices">Common Choices</h6> <ul> <li> <strong>Learning rate</strong>: \(\eta(t) = \eta_0 e^{-\lambda t}\)，初始 \(\eta_0\)、decay rate \(\lambda\)。</li> <li> <strong>Neighborhood function</strong> (Gaussian): \(\phi(u, v, t) = \exp\!\left(-\frac{\|u - v\|^2}{2\sigma(t)^2}\right), \qquad \sigma(t) = \sigma_0 e^{\beta t}\) <ul> <li>\(\sigma_0\): 初始 neighborhood 寬度，\(\beta\) 控制衰減 (注意原 lecture 寫 \(\sigma_0 e^{\beta t}\)，通常 \(\beta &lt; 0\) 才會衰減)。</li> </ul> </li> <li>最簡單的 neighborhood 也可以是 indicator: 鄰居 = 1, 其他 = 0，但 Gaussian 比較平滑。</li> </ul> <h6 id="interpretation">Interpretation</h6> <p>SOM 訓練後常看的幾個圖：</p> <ul> <li> <strong>Codes plot</strong>: 每個 node 畫一張小圓餅 / 雷達圖，顯示該 node 的 weight vector 在各變數上的 profile，看 cluster 的特徵。</li> <li> <strong>Counts plot</strong>: 每個 node 上有幾筆資料被 map 過去；過熱的 node 可能 grid 太小，過冷的可能 grid 太大。</li> <li> <strong>Quality plot</strong>: 每個 node 對 mapped data 的平均距離 (越小越緊湊)。</li> <li> <strong>Neighbour distance plot (U-matrix)</strong>: 相鄰 node weight vector 的距離；高距離 = 兩塊 cluster 的「邊界」。</li> </ul> <blockquote> <p><strong>SOM 跟其他 clustering 的差別</strong> K-means 給你 \(K\) 個 hard label，SOM 給你 grid 上的 topology：除了「分到哪一群」，還告訴你「這群跟哪幾群相鄰」。所以 SOM 同時是 clustering + dimension reduction (類似 <a href="/notes/mva-principal-component-analysis/">Principal Component Analysis</a> 投影到 2D)，但 SOM 是 non-linear 而 PCA 是 linear。</p> </blockquote> <hr> <h3 id="summary">Summary</h3> <h6 id="方法地圖">方法地圖</h6> <p>| 類別 | 代表方法 | 是否需要 model | 對 outlier | |—|—|—|—| | Hierarchical | Single / Complete / Average / Ward’s | 否 | 敏感 | | Partitioning (centroid) | K-means | 否 | 敏感 | | Partitioning (medoid) | K-medoids (PAM) | 否 | 較 robust | | Model-based | Normal mixture (EM) | <strong>是</strong> | 可調 (透過 robust component) | | Topology-preserving | SOM | 否 (但有 architecture) | 中等 |</p> <h6 id="工作流程建議">工作流程建議</h6> <ol> <li>先 EDA：看資料 scale、有沒有 outlier、變數性質 (continuous / binary / mixed)。</li> <li>選 similarity measure：item 用 distance、variable 用 correlation。</li> <li>多跑幾種 hierarchical method 比 dendrogram，初步感受結構。</li> <li>用 elbow / silhouette / BIC 三個角度估 \(K\)。</li> <li>用 K-means / K-medoids / mixture model 跑出 partition，多種 initial 取最佳。</li> <li>拿不同 method 的結果互相比對 (cross-tabulation)，看是不是 stable。</li> <li>最後 interpret cluster 時，務必對照 subject matter knowledge。</li> </ol> <h6 id="跟-pca--fa-的速查對照">跟 PCA / FA 的速查對照</h6> <p>| 面向 | PCA | FA | Clustering | |—|—|—|—| | 對象 | 變數空間 | 變數空間 | item 空間 | | 性質 | linear transformation | statistical model | algorithm 或 model | | 目標 | 重組 variance | 解釋 covariance | 找 grouping | | 核心輸入 | \(\Sigma\) (or \(R\)) | \(\Sigma\) (or \(R\)) | distance / similarity matrix | | Latent | 無 | \(F\) (factors) | \(S\) (cluster label, model-based 才有) | | 估計 | eigen | PC method / MLE | linkage / K-means / EM |</p> </article> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Chia-Fan Chu. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/assets/al_math/js/mathjax-setup.js"></script> <script defer src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6" crossorigin="anonymous"></script> <script src="/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/assets/al_img_tools/js/zoom.js"></script> <script defer src="/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-about",
+    title: "about",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/";
+    },
+  },{id: "nav-cv",
+          title: "CV",
+          description: "Education, experience, publications, and skills.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/cv/";
+          },
+        },{id: "nav-shared-notes",
+          title: "shared notes",
+          description: "Notes I keep while reading papers and working through courses. Shared as-is; most are living documents, so expect a few rough edges.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/notes/";
+          },
+        },{id: "notes-mastering-the-game-of-go-without-human-knowledge",
+          title: 'Mastering the Game of Go without Human Knowledge',
+          description: "PUCT math and why MCTS acts as a policy improvement operator.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/alphago-zero/";
+            },},{id: "notes-curriculum-learning-for-reinforcement-learning-domains-a-framework-and-survey",
+          title: 'Curriculum Learning for Reinforcement Learning Domains: A Framework and Survey',
+          description: "Section-by-section summary of the curriculum learning framework and its design dimensions.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-rl-survey/";
+            },},{id: "notes-a-survey-on-curriculum-learning",
+          title: 'A Survey on Curriculum Learning',
+          description: "Predefined vs automatic curricula and self-paced learning, summarized.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-survey/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-dual-attention-network-based-reinforcement-learning",
+          title: 'Flexible Job Shop Scheduling via Dual Attention Network-Based Reinforcement Learning',
+          description: "Dual-attention method with the math spelled out, plus a note on a missing ablation.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/daniel-dual-attention/";
+            },},{id: "notes-deep-reinforcement-learning-for-dynamic-scheduling-of-a-flexible-job-shop",
+          title: 'Deep Reinforcement Learning for Dynamic Scheduling of a Flexible Job Shop',
+          description: "MDP breakdown plus my comparison tables against related dynamic-scheduling designs.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-dynamic-fjs/";
+            },},{id: "notes-challenges-and-opportunities-in-deep-reinforcement-learning-with-graph-neural-networks",
+          title: 'Challenges and Opportunities in Deep Reinforcement Learning with Graph Neural Networks',
+          description: "Review of how DRL and GNNs combine, and where the open challenges are.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-gnn-review/";
+            },},{id: "notes-deep-rl-for-machine-scheduling-methodology-state-of-the-art-and-future-directions",
+          title: 'Deep RL for Machine Scheduling: Methodology, State of the Art, and Future Directions...',
+          description: "Taxonomy of state, action, and reward designs across the machine-scheduling literature.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-machine-scheduling-survey/";
+            },},{id: "notes-feudal-networks-for-hierarchical-reinforcement-learning",
+          title: 'FeUdal Networks for Hierarchical Reinforcement Learning',
+          description: "Manager/Worker architecture, transition policy gradient, and ablations explained.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/feudal-networks/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-graph-neural-network-and-deep-reinforcement-learning",
+          title: 'Flexible Job-Shop Scheduling via Graph Neural Network and Deep Reinforcement Learning',
+          description: "Detailed method and experiment summary of a key heterogeneous-graph baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-gnn-drl/";
+            },},{id: "notes-the-flexible-job-shop-scheduling-problem-a-review",
+          title: 'The Flexible Job Shop Scheduling Problem: A Review',
+          description: "Schedule classes, problem variants, and solution families, connected back to RL.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-review/";
+            },},{id: "notes-heterogeneous-graph-transformer",
+          title: 'Heterogeneous Graph Transformer',
+          description: "Mutual attention, message passing, and relative temporal encoding, with a worked example.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/heterogeneous-graph-transformer/";
+            },},{id: "notes-knowledge-enabled-multi-agent-drl-for-batch-machine-scheduling-in-semiconductor-fabrication",
+          title: 'Knowledge-enabled Multi-agent DRL for Batch Machine Scheduling in Semiconductor Fabrication',
+          description: "IRL plus MADRL pipeline, reward design, and my critique of it.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/knowledge-madrl-semiconductor/";
+            },},{id: "notes-list-scheduling-and-beam-search-methods-for-the-fjsp-with-sequencing-flexibility",
+          title: 'List Scheduling and Beam Search Methods for the FJSP with Sequencing Flexibility',
+          description: "Problem, method, and results of a strong non-learning FJSP baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/list-scheduling-beam-search-fjsp/";
+            },},{id: "notes-monte-carlo-tree-search-a-review-of-recent-modifications-and-applications",
+          title: 'Monte Carlo Tree Search: A Review of Recent Modifications and Applications',
+          description: "Survey walkthrough of the MCTS phases and variants, with my notes on relevance to scheduling.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mcts-review/";
+            },},{id: "notes-ch-0-introduction",
+          title: 'Ch 0 Introduction',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch0-introduction/";
+            },},{id: "notes-ch-1-traditional-machine-learning-on-graphs",
+          title: 'Ch 1 Traditional Machine Learning on Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch1-traditional-ml-on-graphs/";
+            },},{id: "notes-ch-10-11-15-knowledge-graph",
+          title: 'Ch 10, 11, 15 Knowledge Graph',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch10-11-15-knowledge-graph/";
+            },},{id: "notes-ch-12-gnns-for-recommender-systems",
+          title: 'Ch 12 GNNs for Recommender Systems',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch12-gnns-for-recommender-systems/";
+            },},{id: "notes-ch-14-advanced-topics-in-graph-neural-networks",
+          title: 'Ch 14 Advanced Topics in Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch14-advanced-topics/";
+            },},{id: "notes-ch-16-deep-generative-models-for-graphs",
+          title: 'Ch 16 Deep Generative Models for Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch16-deep-generative-models/";
+            },},{id: "notes-ch-17-geometric-graph-learning",
+          title: 'Ch 17 Geometric Graph Learning',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch17-geometric-graph-learning/";
+            },},{id: "notes-ch-19-label-propagation",
+          title: 'Ch 19 Label Propagation',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch19-label-propagation/";
+            },},{id: "notes-ch-2-node-embedding",
+          title: 'Ch 2 Node Embedding',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch2-node-embedding/";
+            },},{id: "notes-ch-20-scaling-up-gnns",
+          title: 'Ch 20 Scaling Up GNNs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch20-scaling-up-gnns/";
+            },},{id: "notes-ch-21-trustworthy-graph-ai",
+          title: 'Ch 21 Trustworthy Graph AI',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch21-trustworthy-graph-ai/";
+            },},{id: "notes-ch-3-graph-neural-networks",
+          title: 'Ch 3 Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch3-graph-neural-networks/";
+            },},{id: "notes-ch-4-a-general-perspective-on-graph-neural-networks",
+          title: 'Ch 4 A General Perspective on Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch4-general-perspective-on-gnn/";
+            },},{id: "notes-ch-5-gnn-augmentation-and-training",
+          title: 'Ch 5 GNN Augmentation and Training',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch5-gnn-augmentation-and-training/";
+            },},{id: "notes-ch-6-theory-of-graph-neural-networks",
+          title: 'Ch 6 Theory of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch6-theory-of-gnns/";
+            },},{id: "notes-ch-7-limits-of-graph-neural-networks",
+          title: 'Ch 7 Limits of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch7-limits-of-gnns/";
+            },},{id: "notes-ch-8-graph-transformers",
+          title: 'Ch 8 Graph Transformers',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch8-graph-transformers/";
+            },},{id: "notes-ch-9-machine-learning-with-heterogeneous-graphs",
+          title: 'Ch 9 Machine Learning with Heterogeneous Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch9-heterogeneous-graphs/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map plus my conclusions on how to design and train a GNN.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-overview/";
+            },},{id: "notes-clustering-method",
+          title: 'Clustering Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-clustering-method/";
+            },},{id: "notes-factor-analysis",
+          title: 'Factor Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-factor-analysis/";
+            },},{id: "notes-prerequisite",
+          title: 'Prerequisite',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-prerequisite/";
+            },},{id: "notes-principal-component-analysis",
+          title: 'Principal Component Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-principal-component-analysis/";
+            },},{id: "notes-ch-14-general-purpose-procedures-for-deterministic-scheduling",
+          title: 'Ch 14 General Purpose Procedures for Deterministic Scheduling',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch14-general-purpose-procedures/";
+            },},{id: "notes-ch-15-more-advance-general-purpose-procedures",
+          title: 'Ch 15 More Advance General Purpose Procedures',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch15-more-advance-general-purpose-procedures/";
+            },},{id: "notes-ch-16-modeling-and-solving-scheduling-problems-in-practice",
+          title: 'Ch 16 Modeling and Solving Scheduling Problems in Practice',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch16-modeling-and-solving-scheduling-problems/";
+            },},{id: "notes-ch-2-deterministic-models-preliminaries",
+          title: 'Ch 2 Deterministic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch2-deterministic-models-preliminaries/";
+            },},{id: "notes-ch-3-single-machine-method",
+          title: 'Ch 3 Single Machine Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch3-single-machine-method/";
+            },},{id: "notes-ch-4-advance-single-machine",
+          title: 'Ch 4 Advance Single Machine',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch4-advance-single-machine/";
+            },},{id: "notes-ch-5-parallel-machine-model",
+          title: 'Ch 5 Parallel Machine Model',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch5-parallel-machine-model/";
+            },},{id: "notes-ch-6-flow-shop",
+          title: 'Ch 6 Flow Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch6-flow-shop/";
+            },},{id: "notes-ch-7-job-shop",
+          title: 'Ch 7 Job Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch7-job-shop/";
+            },},{id: "notes-ch-8-open-shop",
+          title: 'Ch 8 Open Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch8-open-shop/";
+            },},{id: "notes-ch-9-stochastic-models-preliminaries",
+          title: 'Ch 9 Stochastic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch9-stochastic-models-preliminaries/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map: which chapters are covered and how they fit together.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-overview/";
+            },},{id: "notes-real-time-scheduling-for-dynamic-partial-no-wait-multiobjective-flexible-job-shop-by-drl",
+          title: 'Real-Time Scheduling for Dynamic Partial-No-Wait Multiobjective Flexible Job Shop by DRL',
+          description: "Hierarchical multi-agent MDP with rule tables and Pareto metrics.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/realtime-partial-no-wait-fjs/";
+            },},{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%6F%6B%75%6D%6F%63%68%75%35%35@%67%6D%61%69%6C.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-github',
+        title: 'GitHub',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://github.com/okumochu", "_blank");
+        },
+      },{
+        id: 'social-linkedin',
+        title: 'LinkedIn',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.linkedin.com/in/chia-fan-chu", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=BfaixEUAAAAJ", "_blank");
+        },
+      },];
+
+</script> <script src="/assets/al_search/js/shortcut-key.js"></script> </body> </html>

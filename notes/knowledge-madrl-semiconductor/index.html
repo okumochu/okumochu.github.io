@@ -1,0 +1,317 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Knowledge-enabled Multi-agent DRL for Batch Machine Scheduling in Semiconductor Fabrication | Chia-Fan Chu </title> <meta name="author" content="Chia-Fan Chu"> <meta name="description" content="IRL plus MADRL pipeline, reward design, and my critique of it."> <meta name="keywords" content="chia-fan chu, reinforcement learning, scheduling, operations research, national taiwan university"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;%E2%9A%9B%EF%B8%8F&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/assets/css/main.css?v=f0b101217084a90093badfe99ff9a7d1"> <link rel="canonical" href="https://okumochu.github.io/notes/knowledge-madrl-semiconductor/"> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/"> <span class="font-weight-bold">Chia-Fan</span> Chu </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/cv/">CV </a> </li> <li class="nav-item active"> <a class="nav-link" href="/notes/">shared notes <span class="sr-only">(current)</span> </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title">Knowledge-enabled Multi-agent DRL for Batch Machine Scheduling in Semiconductor Fabrication</h1> <p class="post-description">IRL plus MADRL pipeline, reward design, and my critique of it.</p> </header> <article> <h2 id="introduction">Introduction</h2> <ul> <li> <strong>Batch scheduling + dynamic event (wafer arrival) + re-entrant constraint</strong> → Find scheduling time in acceptable time is important <ul> <li> <strong>Heuristic (rule-base)</strong> and <strong>Metaheuristic</strong> is primary approach to batch scheduling</li> <li>Remains a limitation in terms of their ability to <strong>update in real time</strong> </li> </ul> </li> <li>DRL could solve the problem perfectly in real-time, but in scheduling problem, it suffered form <strong>credit assignment problem</strong> (actions (or decisions) deserve how much of the final overall reward) <ul> <li>Design a reward function to signal agent <strong>before the true objective revealed</strong> is important</li> <li>use <strong>Inverse reinforcement learning</strong> to <em>**</em>extracting knowledge from data to guide the design of reward functions <ul> <li>Extract from vast collection of near-optimal solutions of this problem</li> </ul> </li> </ul> </li> </ul> <h3 id="contribution">Contribution</h3> <ol> <li>Extract the demonstration trajectory \(\tau = \{s_t, a_t, s_{t+1},...\}\) from <strong>Hybrid Ant Colony Optimization (HACO)</strong> serving as a <em>**</em>near-optimal solution and the raw data for Inverse-RL (IRL)</li> <li>Propose a <strong>Bidirectional LSTM–Guided Cost Learning (BLSTM-GCL)</strong> IRL network to find the <strong>relationship</strong> of <strong>current state parameter</strong> (batch size, current flow time, expected remaining flow time, success-flag) and <strong>objective function</strong> (we would know the immediate reward using this four parameters) <ol> <li> <p><strong>Maximum-entropy guided cost learning</strong> to extract reward function (estimate the cost using these four shop floor parameters)</p> \[r_\psi(s,a)\;=\;\sum_{i=1}^4 \omega_i\,p_i(s,a)\] </li> </ol> </li> <li>After getting data-driven reward function <ol> <li>Construct two actor critic agent <ol> <li> <strong>Batch-forming agent</strong>: decides when and which pending lots to group into a batch</li> <li> <strong>Scheduling agent</strong>: assigns ready batches to idle machines</li> </ol> </li> <li>Training two agent, they introduce a <strong>central GRU collaboration module</strong> <ol> <li>At each decision step, the agents feed their chosen action and observed state into the GRU, which encodes a shared “informing vector” summarizing <strong>all prior scheduling context</strong>.</li> <li>Both actors and critics take this vector plus their local observation as input, allowing <strong>dynamic, history-aware coordination</strong>.</li> <li>Training uses a modified Trust-Region Policy Optimization (TRPO) that backpropagates through the GRU to align each agent’s policy with the global objective</li> </ol> </li> </ol> </li> </ol> <h2 id="problem-description">Problem Description</h2> <p><strong>Objective: Minimize average flow time of a wafer batch</strong></p> \[\overline{F} \;=\; \frac{1}{n} \sum_{i=1}^{n} F_i\;=\;\frac{1}{n} \sum_{i=1}^{n} \bigl(C_i - r_i\bigr).\] <ul> <li>Problem Description <ul> <li>N wafer lots arrive over time and are formed into multiple batches, where the number of lots in each batch shouldn’t exceed the maximum capacity B</li> <li>The process type for wafer lots within the same batch should be identical, which requires batch machines to use the same process parameters (temperature, time, chemical environment, etc.) for all wafers when processing a batch</li> <li>Wafer lots are subjected to multiple process steps, and these are often multi-layered, meaning that lots may need to be processed multiple times on the same or different machines (so-called re-entry flow)</li> <li>It is important to note that a batch machine can only process batches of one type at a time. The batch machines are composed of two or more equivalent parallel machines, and these machines operate in a non-preemptive manner, meaning that once they commence processing, they cannot be interrupted.</li> <li>In addition, some production lead time is required when switching process types on batch machines, e.g. switching from one process to another may require cleaning and reconfiguration of the equipment.</li> </ul> </li> <li>Problem Assumption <ol> <li>Batches arrive dynamically, and process type and processing time information is available for each layer of each lot during processing</li> <li>Machine failures and delays due to maintenance are not considered</li> <li>The processing time of a batch is independent of the number of lots comprising the batch, and is related only to the process type of the batch.</li> <li>Batch buffer capacity in front of batch machines is unlimited</li> <li>Batch machines have a maximum capacity limit</li> <li>Different production lead times are incurred when processing different process products before and after the batch machines</li> <li>The batch cannot be interrupted once processing has begun, and is a non-preemptive process</li> <li>There are no emergency order insertions, and batches are strictly enforced in accordance with the scheduling solution</li> </ol> </li> </ul> <p><img src="/assets/notes/knowledge-madrl-semiconductor/image.png" alt="image" loading="lazy" style="max-width: 100%; height: auto;"></p> <blockquote> <p><strong>Note</strong> Each wafer lot must pass through a fixed sequence of processing layers in the fab Think of each layer as one operation (e.g. oxidation, deposition, etch) that the lot must undergo. The index \(w\) simply denotes which layer in that sequence</p> </blockquote> <blockquote> <p><strong>Note</strong> 每個 lot 接下來的加工 (layer) 要相同才能 batch 在ㄧ起 然後若該 batch 仍有後續加工，就會整批 lots arrive → batch forming → scheduling</p> </blockquote> <h2 id="methodology">Methodology</h2> <p><img src="/assets/notes/knowledge-madrl-semiconductor/image-1.png" alt="image 1" loading="lazy" style="max-width: 100%; height: auto;"></p> <p><strong>State</strong></p> <ul> <li> <strong>Batch-forming agent</strong> observes the state of <strong>lots</strong> and <strong>batches</strong> </li> <li> <p><strong>Scheduling agent</strong> observes the state of <strong>batches</strong> and <strong>machine</strong></p> <p><img src="/assets/notes/knowledge-madrl-semiconductor/image-2.png" alt="image 2" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> </ul> <p><strong>Action</strong></p> <ul> <li> <strong>Batch-forming agent</strong> <ul> <li>Select Lot number for batch forming (list of lot-indices)</li> <li>Do nothing</li> </ul> </li> <li> <p><strong>Scheduling agent</strong> observes the <strong>batches</strong> and <strong>machine</strong></p> <p>When ever a machine is idle</p> <ul> <li>Assign a batch to that idle machine</li> <li>Do nothing</li> </ul> </li> </ul> <p><strong>Reward</strong> DRL agents will use a <strong>learned weight</strong> to formulate reward (current flow time / subsequent expected flow time / batch size / batch-forming success flag)</p> \[r(s,a)\;=\;\omega_1 p_1 + \omega_2 p_2 + \omega_3 p_3 + \omega_4 p_4\] <ul> <li> <p><strong>Batch-forming agent</strong></p> \[r_2 = -\Bigl[\omega_1\,(t - a_{ti}) + \omega_2\,F_{i,w} + \omega_3\,V_j\Bigr]\;s_{\omega_2}(t)\;-\;\omega_4\bigl(1 - s_{\omega_2}(t)\bigr)\] <ul> <li>\(t - a_{ti}\) : current flow time of the lots waiting in buffer <ul> <li>\(a_{ti}\) is the time when the lots fist arrive</li> </ul> </li> <li>\(F_{i,w}\) : subsequent expected flow time</li> <li>\(V_j\) : batch size</li> <li>\(s_{\omega_2}(t)\): 1 if a successful batch formation just occurred, 0 otherwise</li> </ul> </li> <li> <p><strong>Scheduling agent</strong></p> \[r_3 = -\bigl(t - S_{mk}\bigr)\] <ul> <li>where \(S_{mk}\) is the time the machine became idle. so it would penalize forced idle time</li> </ul> </li> </ul> <blockquote> <p><strong>Note</strong> Global reward function 就是一個很基本的 critic 架構。我覺得想表達的是透過這個 Basic RL 的設計 (discount factor) 做到避免 greedy。 但是我覺得有點沒新意</p> </blockquote> <h3 id="learn-a-reward-via-blstm-gcl-irl"> <strong>Learn</strong> a reward via BLSTM-GCL IRL</h3> <blockquote> <p>To establish the <strong>relationship</strong> between the <strong>key feature parameters</strong> in scheduling and the <strong>global optimization objective</strong></p> </blockquote> <p><img src="/assets/notes/knowledge-madrl-semiconductor/image-3.png" alt="image 3" loading="lazy" style="max-width: 100%; height: auto;"></p> <h3 id="guide-cost-learning">Guide Cost Learning</h3> <p>It is an algorithm of <strong>Inverse Reinforcement Learning (IRL)</strong></p> <p>Finn, C., Levine, S., &amp; Abbeel, P. (2016, June). Guided cost learning: Deep inverse optimal control via policy optimization. In <em>International conference on machine learning</em> (pp. 49-58). PMLR.</p> <ul> <li>簡單來說他的做法就是 <ol> <li>選定一個專家 policy (state action pair)</li> <li>根據目前的 estimated reward function 學習一個 policy</li> <li>他們會有各自的 trajectory，然後再用相同的 estimated reward function 去計算並相減，這個值必須越大越好</li> <li>Back propagation for reward function 然後回到第二步，直到收斂</li> </ol> <blockquote> <p><strong>Note</strong> 最大化這個目標函數會使前面這項變大，後面這項變小。很合理，因為一個好的 estimated reward function 的結果應該會顯示出專家的 policy 會比這個 estimate reward function 訓練的 policy 來的好，所以差距要變大 在 iteration 中期 estimated reward function 還會越來越準，使得其 estimate reward function 訓練的 policy 越來越像 專家的 policy 使其差距縮小 這個過程就一職重複直到收斂 (reward 拉開差距 → policy 往上追趕 → 再拉開差距 → 再追趕)</p> </blockquote> <ul> <li> <p>下面這個就是要 maximize 的 objective function (\(\tau\) = trajectory)</p> \[L(\psi) \,=\, \frac{1}{N}\sum_{i=1}^{N} r_{\psi}(\tau_i) \;-\; \frac{1}{M}\sum_{j=1}^{M} r_{\psi}(\tilde\tau_j)\] </li> </ul> </li> </ul> <h3 id="train-two-drl-agents"> <strong>Train</strong> two DRL agents</h3> <blockquote> <p>The GRU network is utilized to enable collaborative interaction between the batch forming agent and the scheduling agent, aiming for global optimization by minimizing the average flow time of wafer batches</p> </blockquote> <p><img src="/assets/notes/knowledge-madrl-semiconductor/image-4.png" alt="image 4" loading="lazy" style="max-width: 100%; height: auto;"></p> <ul> <li> <p>中間會有一個 global GRU network，作為兩個 agent 一部分的 observation，另一部分就是他們自己的 local observation。叫做 informing vector，加入這個能使 RL agent 更有記憶功能</p> \[m_{dc-1} \;=\;\mathrm{GRU}\bigl(h_{dc-2},\,[\,S_{dc-1},\,a_{dc-1}\,];\,\psi\bigr)\] </li> <li> <p>Update Algorithm</p> <p><img src="/assets/notes/knowledge-madrl-semiconductor/image-5.png" alt="image 5" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> </ul> <h2 id="numerical-experiment">Numerical Experiment</h2> <p>note: all state would go through min-max normalization</p> <p>Experiment Instance</p> <ul> <li> <strong>Time horizon:</strong> Simulated 1 year, with a 2-month warm-up (no data collected), then data collected over 2 months, updated monthly</li> <li> <strong>Lot scales:</strong> <ul> <li> <em>Small scale:</em> 2 months of lots, arrivals ∼ Normal(mid-month, 15 days).</li> <li> <em>Large scale:</em> 6 months of lots, arrivals ∼ two Normals (10th &amp; 20th day, 10 days variance).</li> </ul> </li> <li> <strong>Machine/process scales:</strong> <ul> <li>Two process types (diffusion, wet etch)</li> <li>Two machine configurations (9 machines vs. 14 machines)</li> </ul> </li> <li>Scheduling knowledge extraction <ul> <li>Outputs every 50 steps a new set of <strong>feature-weight vectors \(\psi=[\omega_1,\dots,\omega_4]\)</strong> </li> <li>當小規模時， current flow time 跟 subsequent expected flow time 權重成反相關</li> </ul> <p><img src="/assets/notes/knowledge-madrl-semiconductor/image-6.png" alt="image 6" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> <li>Multi-agent training <ul> <li> <p>Configuration</p> <p><img src="/assets/notes/knowledge-madrl-semiconductor/image-7.png" alt="image 7" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> </ul> <p><img src="/assets/notes/knowledge-madrl-semiconductor/image-8.png" alt="image 8" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> <li>Performance Comparison (random parameter) <ul> <li> <p>Experiment Configuration</p> <p><img src="/assets/notes/knowledge-madrl-semiconductor/image-9.png" alt="image 9" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> <li>RL 跟 HACO 表現差不多</li> <li>KE‐MADRL 在多數實驗中獲勝，且因為有 Guiding 所以減少試錯，訓練時間明顯下降</li> </ul> <p><img src="/assets/notes/knowledge-madrl-semiconductor/image-10.png" alt="image 10" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> <li> <p>Performance Comparison (simulation instance)</p> <blockquote> <p>To further validate the effectiveness of the proposed algorithm, <strong>a fabrication simulation model was established</strong> based on the batch processing area of a semiconductor enterprise, <strong>using the simulation software Plant Simulation 9.0</strong>. In the simulation model, the distribution of wafer dynamic arrivals is varied to maximize the restoration of real production scenarios The model is set to run for 1 year, with the first 2 months being the transition period from initialization to stable production of the system, with no data collection; the first data collection starts after 2 months, with a 2 month cycle for the first data collection, and the data are updated once a month thereafter</p> </blockquote> <ul> <li>A1在某些例子上是佔優勢的，但是 generalization 並不強</li> <li> <p>KE-MADRL 在大部分例子上都是贏的</p> <p><img src="/assets/notes/knowledge-madrl-semiconductor/image-11.png" alt="image 11" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> </ul> </li> </ul> <h2 id="conclusion">Conclusion</h2> <ul> <li>Reward Function 和 reward shaping 的 signal 的設計非常困難，設計不好可能會導致 sub optimal policy。所以本研究使用 BLSTM-GCL IRL 抽取 HACO 的 near-optimal solution 來設計 reward function</li> <li>MADRL model with batch forming agents and scheduling agents is designed , incorporating a GRU-based collaboration mechanism to enhance single scheduling accuracy</li> </ul> <h2 id="related-notes">Related Notes</h2> <ul> <li>Proximal Policy Optimization (PPO)</li> </ul> </article> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Chia-Fan Chu. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/assets/al_math/js/mathjax-setup.js"></script> <script defer src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6" crossorigin="anonymous"></script> <script src="/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/assets/al_img_tools/js/zoom.js"></script> <script defer src="/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-about",
+    title: "about",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/";
+    },
+  },{id: "nav-cv",
+          title: "CV",
+          description: "Education, experience, publications, and skills.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/cv/";
+          },
+        },{id: "nav-shared-notes",
+          title: "shared notes",
+          description: "Notes I keep while reading papers and working through courses. Shared as-is; most are living documents, so expect a few rough edges.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/notes/";
+          },
+        },{id: "notes-mastering-the-game-of-go-without-human-knowledge",
+          title: 'Mastering the Game of Go without Human Knowledge',
+          description: "PUCT math and why MCTS acts as a policy improvement operator.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/alphago-zero/";
+            },},{id: "notes-curriculum-learning-for-reinforcement-learning-domains-a-framework-and-survey",
+          title: 'Curriculum Learning for Reinforcement Learning Domains: A Framework and Survey',
+          description: "Section-by-section summary of the curriculum learning framework and its design dimensions.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-rl-survey/";
+            },},{id: "notes-a-survey-on-curriculum-learning",
+          title: 'A Survey on Curriculum Learning',
+          description: "Predefined vs automatic curricula and self-paced learning, summarized.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-survey/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-dual-attention-network-based-reinforcement-learning",
+          title: 'Flexible Job Shop Scheduling via Dual Attention Network-Based Reinforcement Learning',
+          description: "Dual-attention method with the math spelled out, plus a note on a missing ablation.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/daniel-dual-attention/";
+            },},{id: "notes-deep-reinforcement-learning-for-dynamic-scheduling-of-a-flexible-job-shop",
+          title: 'Deep Reinforcement Learning for Dynamic Scheduling of a Flexible Job Shop',
+          description: "MDP breakdown plus my comparison tables against related dynamic-scheduling designs.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-dynamic-fjs/";
+            },},{id: "notes-challenges-and-opportunities-in-deep-reinforcement-learning-with-graph-neural-networks",
+          title: 'Challenges and Opportunities in Deep Reinforcement Learning with Graph Neural Networks',
+          description: "Review of how DRL and GNNs combine, and where the open challenges are.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-gnn-review/";
+            },},{id: "notes-deep-rl-for-machine-scheduling-methodology-state-of-the-art-and-future-directions",
+          title: 'Deep RL for Machine Scheduling: Methodology, State of the Art, and Future Directions...',
+          description: "Taxonomy of state, action, and reward designs across the machine-scheduling literature.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-machine-scheduling-survey/";
+            },},{id: "notes-feudal-networks-for-hierarchical-reinforcement-learning",
+          title: 'FeUdal Networks for Hierarchical Reinforcement Learning',
+          description: "Manager/Worker architecture, transition policy gradient, and ablations explained.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/feudal-networks/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-graph-neural-network-and-deep-reinforcement-learning",
+          title: 'Flexible Job-Shop Scheduling via Graph Neural Network and Deep Reinforcement Learning',
+          description: "Detailed method and experiment summary of a key heterogeneous-graph baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-gnn-drl/";
+            },},{id: "notes-the-flexible-job-shop-scheduling-problem-a-review",
+          title: 'The Flexible Job Shop Scheduling Problem: A Review',
+          description: "Schedule classes, problem variants, and solution families, connected back to RL.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-review/";
+            },},{id: "notes-heterogeneous-graph-transformer",
+          title: 'Heterogeneous Graph Transformer',
+          description: "Mutual attention, message passing, and relative temporal encoding, with a worked example.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/heterogeneous-graph-transformer/";
+            },},{id: "notes-knowledge-enabled-multi-agent-drl-for-batch-machine-scheduling-in-semiconductor-fabrication",
+          title: 'Knowledge-enabled Multi-agent DRL for Batch Machine Scheduling in Semiconductor Fabrication',
+          description: "IRL plus MADRL pipeline, reward design, and my critique of it.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/knowledge-madrl-semiconductor/";
+            },},{id: "notes-list-scheduling-and-beam-search-methods-for-the-fjsp-with-sequencing-flexibility",
+          title: 'List Scheduling and Beam Search Methods for the FJSP with Sequencing Flexibility',
+          description: "Problem, method, and results of a strong non-learning FJSP baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/list-scheduling-beam-search-fjsp/";
+            },},{id: "notes-monte-carlo-tree-search-a-review-of-recent-modifications-and-applications",
+          title: 'Monte Carlo Tree Search: A Review of Recent Modifications and Applications',
+          description: "Survey walkthrough of the MCTS phases and variants, with my notes on relevance to scheduling.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mcts-review/";
+            },},{id: "notes-ch-0-introduction",
+          title: 'Ch 0 Introduction',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch0-introduction/";
+            },},{id: "notes-ch-1-traditional-machine-learning-on-graphs",
+          title: 'Ch 1 Traditional Machine Learning on Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch1-traditional-ml-on-graphs/";
+            },},{id: "notes-ch-10-11-15-knowledge-graph",
+          title: 'Ch 10, 11, 15 Knowledge Graph',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch10-11-15-knowledge-graph/";
+            },},{id: "notes-ch-12-gnns-for-recommender-systems",
+          title: 'Ch 12 GNNs for Recommender Systems',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch12-gnns-for-recommender-systems/";
+            },},{id: "notes-ch-14-advanced-topics-in-graph-neural-networks",
+          title: 'Ch 14 Advanced Topics in Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch14-advanced-topics/";
+            },},{id: "notes-ch-16-deep-generative-models-for-graphs",
+          title: 'Ch 16 Deep Generative Models for Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch16-deep-generative-models/";
+            },},{id: "notes-ch-17-geometric-graph-learning",
+          title: 'Ch 17 Geometric Graph Learning',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch17-geometric-graph-learning/";
+            },},{id: "notes-ch-19-label-propagation",
+          title: 'Ch 19 Label Propagation',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch19-label-propagation/";
+            },},{id: "notes-ch-2-node-embedding",
+          title: 'Ch 2 Node Embedding',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch2-node-embedding/";
+            },},{id: "notes-ch-20-scaling-up-gnns",
+          title: 'Ch 20 Scaling Up GNNs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch20-scaling-up-gnns/";
+            },},{id: "notes-ch-21-trustworthy-graph-ai",
+          title: 'Ch 21 Trustworthy Graph AI',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch21-trustworthy-graph-ai/";
+            },},{id: "notes-ch-3-graph-neural-networks",
+          title: 'Ch 3 Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch3-graph-neural-networks/";
+            },},{id: "notes-ch-4-a-general-perspective-on-graph-neural-networks",
+          title: 'Ch 4 A General Perspective on Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch4-general-perspective-on-gnn/";
+            },},{id: "notes-ch-5-gnn-augmentation-and-training",
+          title: 'Ch 5 GNN Augmentation and Training',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch5-gnn-augmentation-and-training/";
+            },},{id: "notes-ch-6-theory-of-graph-neural-networks",
+          title: 'Ch 6 Theory of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch6-theory-of-gnns/";
+            },},{id: "notes-ch-7-limits-of-graph-neural-networks",
+          title: 'Ch 7 Limits of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch7-limits-of-gnns/";
+            },},{id: "notes-ch-8-graph-transformers",
+          title: 'Ch 8 Graph Transformers',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch8-graph-transformers/";
+            },},{id: "notes-ch-9-machine-learning-with-heterogeneous-graphs",
+          title: 'Ch 9 Machine Learning with Heterogeneous Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch9-heterogeneous-graphs/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map plus my conclusions on how to design and train a GNN.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-overview/";
+            },},{id: "notes-clustering-method",
+          title: 'Clustering Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-clustering-method/";
+            },},{id: "notes-factor-analysis",
+          title: 'Factor Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-factor-analysis/";
+            },},{id: "notes-prerequisite",
+          title: 'Prerequisite',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-prerequisite/";
+            },},{id: "notes-principal-component-analysis",
+          title: 'Principal Component Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-principal-component-analysis/";
+            },},{id: "notes-ch-14-general-purpose-procedures-for-deterministic-scheduling",
+          title: 'Ch 14 General Purpose Procedures for Deterministic Scheduling',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch14-general-purpose-procedures/";
+            },},{id: "notes-ch-15-more-advance-general-purpose-procedures",
+          title: 'Ch 15 More Advance General Purpose Procedures',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch15-more-advance-general-purpose-procedures/";
+            },},{id: "notes-ch-16-modeling-and-solving-scheduling-problems-in-practice",
+          title: 'Ch 16 Modeling and Solving Scheduling Problems in Practice',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch16-modeling-and-solving-scheduling-problems/";
+            },},{id: "notes-ch-2-deterministic-models-preliminaries",
+          title: 'Ch 2 Deterministic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch2-deterministic-models-preliminaries/";
+            },},{id: "notes-ch-3-single-machine-method",
+          title: 'Ch 3 Single Machine Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch3-single-machine-method/";
+            },},{id: "notes-ch-4-advance-single-machine",
+          title: 'Ch 4 Advance Single Machine',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch4-advance-single-machine/";
+            },},{id: "notes-ch-5-parallel-machine-model",
+          title: 'Ch 5 Parallel Machine Model',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch5-parallel-machine-model/";
+            },},{id: "notes-ch-6-flow-shop",
+          title: 'Ch 6 Flow Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch6-flow-shop/";
+            },},{id: "notes-ch-7-job-shop",
+          title: 'Ch 7 Job Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch7-job-shop/";
+            },},{id: "notes-ch-8-open-shop",
+          title: 'Ch 8 Open Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch8-open-shop/";
+            },},{id: "notes-ch-9-stochastic-models-preliminaries",
+          title: 'Ch 9 Stochastic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch9-stochastic-models-preliminaries/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map: which chapters are covered and how they fit together.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-overview/";
+            },},{id: "notes-real-time-scheduling-for-dynamic-partial-no-wait-multiobjective-flexible-job-shop-by-drl",
+          title: 'Real-Time Scheduling for Dynamic Partial-No-Wait Multiobjective Flexible Job Shop by DRL',
+          description: "Hierarchical multi-agent MDP with rule tables and Pareto metrics.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/realtime-partial-no-wait-fjs/";
+            },},{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%6F%6B%75%6D%6F%63%68%75%35%35@%67%6D%61%69%6C.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-github',
+        title: 'GitHub',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://github.com/okumochu", "_blank");
+        },
+      },{
+        id: 'social-linkedin',
+        title: 'LinkedIn',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.linkedin.com/in/chia-fan-chu", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=BfaixEUAAAAJ", "_blank");
+        },
+      },];
+
+</script> <script src="/assets/al_search/js/shortcut-key.js"></script> </body> </html>

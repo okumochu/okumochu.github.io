@@ -1,0 +1,317 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Challenges and Opportunities in Deep Reinforcement Learning with Graph Neural Networks | Chia-Fan Chu </title> <meta name="author" content="Chia-Fan Chu"> <meta name="description" content="Review of how DRL and GNNs combine, and where the open challenges are."> <meta name="keywords" content="chia-fan chu, reinforcement learning, scheduling, operations research, national taiwan university"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;%E2%9A%9B%EF%B8%8F&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/assets/css/main.css?v=f0b101217084a90093badfe99ff9a7d1"> <link rel="canonical" href="https://okumochu.github.io/notes/drl-gnn-review/"> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/"> <span class="font-weight-bold">Chia-Fan</span> Chu </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/cv/">CV </a> </li> <li class="nav-item active"> <a class="nav-link" href="/notes/">shared notes <span class="sr-only">(current)</span> </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title">Challenges and Opportunities in Deep Reinforcement Learning with Graph Neural Networks</h1> <p class="post-description">Review of how DRL and GNNs combine, and where the open challenges are.</p> </header> <article> <h2 id="introduction--motivation">Introduction &amp; Motivation</h2> <h3 id="why-drl">Why DRL</h3> <ul> <li> <strong>Computational Efficient:</strong> Like the advantage diff between Metaheuristic algorithms and mathematical programming (exact methods), allowing fast generation of high-fidelity solutions that are crucial in highly dynamic environments with demand for real-time decision <ul> <li> <p>Optimizaion Technique</p> <p><img src="/assets/notes/drl-gnn-review/image.png" alt="image" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> </ul> </li> <li> <strong>Understand environment dynamics and based solely on interactions with the environment:</strong> produce near-optimal actions without the need for explicit prior knowledge of the underlying system</li> </ul> <h3 id="why-drl-times-gnn">Why DRL \(\times\) GNN</h3> <ul> <li>DRL is rapidly being adopted in various applications that involve environments and formulations exhibiting structural relationships (e.g. Knowledge Graph) <ul> <li>GNN architectures can jointly model both structural information and node attributes, They provide significant performance improvement for graph-related downstream tasks such as node classification, link prediction, community detection, and graph classification</li> </ul> </li> <li>The ability to train in constant changing of topology (adding node or edges) providing more robust model performance</li> </ul> <p><img src="/assets/notes/drl-gnn-review/image-1.png" alt="image 1" loading="lazy" style="max-width: 100%; height: auto;"></p> <blockquote> <p><strong>Note</strong> <strong>Strength:</strong> Scalable (memory and computational), Generalization acorss envs</p> </blockquote> <h3 id="taxonomy">Taxonomy</h3> <p><img src="/assets/notes/drl-gnn-review/image-2.png" alt="image 2" loading="lazy" style="max-width: 100%; height: auto;"></p> <h2 id="symbiotic-drlgnn-frameworks">Symbiotic DRL–GNN Frameworks</h2> <p>In these articles, either GNN is used to improve the formulation and performance of DRL or DRL is used to improve the applicability of GNN.</p> <h3 id="drl-enhancing-gnn">DRL Enhancing GNN</h3> <ul> <li> <strong>Neural architecture search:</strong> It refers to the process of automatically searching for an optimal architecture of a neural network (e.g., the number of layers and the number of nodes in layer) <ul> <li>Use RL to search the network archotecture of GNN, and the trianed agent could be used to quickly determine the optimal parameters for various use cases (high generalizability)</li> </ul> </li> <li> <strong>Explaining GNN predictions:</strong> Generating explanations for DNN predictions <ul> <li>Identifying the subgraph that is most influential in generating a prediction: use DRL agent to expand from a node and generate the subgraph of the original graph. the reward is defined by the mutual information between the original predicted label and the label made by the generated graph</li> </ul> </li> <li> <strong>Generating adversarial attacks for GNN:</strong> Recent studies have shown that GNNs are vulnerable to adversarial attacks that perturb or poison the data used for training them. The atacks could be used to design defense strategies or serving as a robustness evaluation</li> </ul> <blockquote> <p><strong>Note</strong> DRL good at makeing sequential dicisions (scalability, generalization, learning from interaction)</p> </blockquote> <h3 id="gnn-enhancing-drl">GNN Enhancing DRL</h3> <ul> <li> <strong>Modeling relationship among agents in MADRL (multi-agent):</strong> In MADRL, a group of agents cooperate or compete with each other to achieve a common goal. Communication among agents offers additional information about the environment and state of other agents. <ul> <li>Uses the message-passing mechanism to coordinate the behaviors of agents (communicate).</li> </ul> </li> <li> <strong>Modeling relationship among tasks in MTDRL (multi-task):</strong> Exploit commonalities between multiple tasks in order to learn policies with improved returns. One of the inherent assumptions in a majority of MTDRL works is the fixed state–action spaces. This issue has been addressed by using GNNs that are capable of processing graphs of arbitrary size, thereby supporting MTDRL in variable state–action space environment <ul> <li>Limb features are encoded in the form of node labels and edges represent the physical connections between the corresponding limbs, and use policy to predict the actions for different part</li> </ul> </li> <li> <strong>Relational symbolic input for RDRL (relational deep reinforcement learning):</strong> Same problem GNN are used to handle variable dim of state and action. since GNN could encode variable-size object and edges <ul> <li>Take GNN’s node to predict wheter they are related (e.g. input two node embedding, output score)</li> </ul> </li> </ul> <blockquote> <p><strong>Note</strong> GNN is a powerful encoder providing complex structural inductive bias</p> </blockquote> <h2 id="application-specific-implementations">Application-Specific Implementations</h2> <p>The second broad category of articles exploits the versatility of DRL along with the flexible encoding capability of GNNs to address interesting challenges in different application domains</p> <ul> <li> <strong>Combinatorial Optimization:</strong> Many CO problems are computationally expensive and require approximations and heuristics to solve in polynomial time <ul> <li> <strong>Operations Research:</strong> Treat the solution construction as a sequential game. For example, in solving node covering problems, “GNN is first utilized to find appropriate candidate nodes by learning the scoring function computed using the probabilistic greedy approach”</li> <li> <strong>System Design:</strong> Whether it is circuit design or logic synthesis, these are structural optimization tasks. We found that “GCN extracts the circuit features that enable the transfer of knowledge between different topologies”, allowing the DRL designer to generalize across different technology nodes. <ul> <li>GCN is employed to learn the circuit topology representation. The generalizability of DRL enables training on one technology node and then applying the trained agent to search the same circuit under different technology nodes</li> </ul> </li> </ul> </li> <li> <strong>Transportation:</strong> Transportation problems that are handled with DRL and GNN can be broadly classified into two classes, namely, routing and speed prediction. <ul> <li> <strong>Vehicle routing:</strong> The generalization of TSP (one sales man need to visit all city once, and back to the original node). vehicle routing problem has several vehicles, and these vehicles would try to visit all the city with some constraint <em>**</em>(e.g. lmited travel distance), and return to the original start point. <ul> <li>State is the GNN embedding, and the action is to selecting a node from the nonvisited pool and the reward is the negative tour length.</li> </ul> </li> <li> <strong>Flow Prediction and Control (TSC):</strong> While routing deals with individual agents, Traffic Signal Control (TSC) deals with the aggregate flow of the system. Traffic is dynamic and heterogeneous. Traditional controllers struggle to adapt to changing topologies or weather. <ul> <li>Researchers model traffic networks as heterogeneous graphs where intersections are nodes, and use muti-agent to control.</li> <li>By combining Graph Convolutional Networks (GCN) and Graph Attention Networks (GAT), agents can process spatial dependencies (nearby traffic) and temporal dependencies (flow over time).</li> <li>A Deep Q-Network (DQN) can then act as a meta-controller, providing weights to “combine the GCN and GAT predictions, where the weights are adaptive to different network topologies.”</li> </ul> <blockquote> <p>Srinivasan, D., Choy, M. C., &amp; Cheu, R. L. (2006). Neural networks for real-time traffic signal control. IEEE Transactions on intelligent transportation systems, 7(3), 261-272.</p> </blockquote> <blockquote> <p><strong>Note</strong> The key contribution of this work lies in its generalizability as it is able to achieve outstanding performance over several real-world networks that are never seen during training.</p> </blockquote> </li> </ul> </li> <li> <strong>Manufacturing and Control:</strong> DRL has also been explored in modern manufacturing systems because of the increasing complexity and interdependency across processes and system levels <ul> <li>The manufacturing system is represented as a graph, where machines are treated as nodes and material flow between machines is treated as links <ul> <li>Use GCN to encode the neighbor informaiton into the machine node serving as the local and the aggregation of whoel graph serving as the global information, and each node represent a agent. (Multi-agent system)</li> </ul> <blockquote> <p>Huang, Jing, et al. “Integrated process-system modelling and control through graph neural network and reinforcement learning.” CIRP Annals 70.1 (2021): 377-380.</p> </blockquote> </li> <li>Connected and Autonomous Vehicles (CAVs) <ul> <li>Standard DRL struggles when the number of agents fluctuates. “DRL-based controllers in most existing literature address only a single or fixed number of agents.”</li> <li>The dynamically changing the number of agents (vehicles) and the fast-growing joint action space associated with multiagent driving tasks pose difficultly in achieving cooperative control</li> <li>A centralized multiagent controller is then built upon the fused information to make collaborative decisions for a dynamic number of CAVs within the CAV network.</li> </ul> <blockquote> <p>Chen, Sikai, et al. “Graph neural network and reinforcement learning for multi‐agent cooperative control of connected autonomous vehicles.” Computer‐Aided Civil and Infrastructure Engineering 36.7 (2021): 838-857.</p> </blockquote> </li> </ul> </li> <li> <strong>Knowledge Representation and Reasoning:</strong> Knowledge Graphs (KGs. task including recommendation systems, social networks, information extraction) store data as triplets (Head, Relation, Tail). However, these databases are often incomplete <ul> <li>Usually we predict the link between two entities instead of generating the sub-graph (e.g., new or missing target entities) since the generation task lack of reward signal</li> <li>Advanced models use Generative Adversarial Networks (GANs). An LSTM generator “records previous trajectories… but also generates new subgraphs,” allowing the system to reason about entities that might not yet explicitly exist in the graph structure.</li> </ul> </li> <li> <strong>Life Sciences and Molecular Discovery:</strong> In this domain, the “graphs” are molecules (atoms as nodes, bonds as edges) or biological networks (neurons) <ul> <li>Drug Discovery: graph generation</li> <li>Brain Network Analysis: graph analysis</li> </ul> </li> </ul> <h2 id="problem-specific-applicability-of-drl-and-gnn-methods">Problem-Specific Applicability of DRL and GNN Methods</h2> <ul> <li>Sequential decision-making setting of the problem, wherein learning occurs via interactions with the environment</li> <li>The learning is aimed at achieving long-term goals and avoids making myopic decisions</li> <li>The underlying system is most efficiently represented as a graph, thereby making GNNs the natural choice for representing such system (e.g. TSP problem) <ul> <li>Environments involving large graphs should rely on GraphSAGE rather than GCN, as GraphSAGE is a subgraph-based inductive learning approach that is scalable to larger networks.</li> <li>Similarly, applications where the position of a node with respect to the entire graph is vital, PGNNs are preferred. PGNNs explicitly make use of anchor nodes along with neighboring subgraph to improve the effectiveness of node embeddings</li> </ul> <blockquote> <p><strong>Note</strong> the expressive power of most GNNs is upper bounded by the 1-Weisfeiler–Lehman (1-WL) graph isomorphism test, i.e., they cannot differentiate between different d-regular graphs</p> </blockquote> </li> <li>Dynamic graph-structured environments <ul> <li>e.g. In a CAV network, the number of vehicles dynamically changes. Under this scenario, an appropriate strategy would be to use LSTMs fused with GNNs for capturing graph evolution (topological changes) as well as DRL trajectories</li> </ul> </li> </ul> <h2 id="open-challenges-and-research-opportunities">OPEN CHALLENGES AND RESEARCH OPPORTUNITIES</h2> <p><img src="/assets/notes/drl-gnn-review/image-3.png" alt="image 3" loading="lazy" style="max-width: 100%; height: auto;"></p> <ul> <li> <strong>Generalizability:</strong> A combined GNN-DRL approach can fall into the pitfall of poor generalizability by not being able to generalize to slightly different environmental settings. For instance, changing the layout of environment <ul> <li>e.g., dynamic link connections in social network while solving combinatorial problem such as influence maximization. This can be caused either due to the GNN or the DRL not being able to generalize to the environment.</li> <li>Solution 1: meta RL, provide more context varjable to handle the unseen environments</li> <li>Solution 2: exposing agents to several graph environments</li> <li>Solution 3: decision transformer, leverage the a strong pretrained model and fine tune with specific application</li> </ul> </li> <li> <strong>Transparency &amp; XAI:</strong> Increasing Transparency by Incorporating XAI and Representation Learning <ul> <li>Solution: hierarchical RL / hindsight experience replay</li> </ul> </li> <li> <strong>Constraint Formulation:</strong> Optimization problems for real-life applications are mostly bounded by a variety of constraints in terms of finance, time, resources, and so on. Most of the existing DRL works deal with constraints through penalties in reward (soft constraint) <ul> <li>when design the MDP or construct the env these constraint need to be considered as a hard constraint (action mask, state transition) to keep the exploration space away from constraint violation</li> </ul> </li> <li> <strong>Dynamic/Heterogeneous Environment Construction:</strong> real-life scenarios can be far more complex compared to simulated platforms. <ul> <li>the real world environment is not static and the entities are not homgenious. how to construct that env and train to handle the dynamics is important.</li> <li>similarly, how to evaluate the model is also important, the model need to be robust. If not, we need to know when to retrain <ul> <li>Solution: A sensitivity analysis of the model’s performance to data and environmental parameters can provide important insights into the stability of a model</li> </ul> </li> </ul> </li> <li> <strong>Computational Efficiency via Foundation Decision Models:</strong> RL algorithms are very efficient during inference time, whereas they are quite sample inefficient (i.e., demand large interaction data for learning an effective policy) during training compared to linear/dynamic programming.</li> </ul> <h2 id="related-notes">Related Notes</h2> <ul> <li>Combinatorial Optimization</li> </ul> </article> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Chia-Fan Chu. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/assets/al_math/js/mathjax-setup.js"></script> <script defer src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6" crossorigin="anonymous"></script> <script src="/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/assets/al_img_tools/js/zoom.js"></script> <script defer src="/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-about",
+    title: "about",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/";
+    },
+  },{id: "nav-cv",
+          title: "CV",
+          description: "Education, experience, publications, and skills.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/cv/";
+          },
+        },{id: "nav-shared-notes",
+          title: "shared notes",
+          description: "Notes I keep while reading papers and working through courses. Shared as-is; most are living documents, so expect a few rough edges.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/notes/";
+          },
+        },{id: "notes-mastering-the-game-of-go-without-human-knowledge",
+          title: 'Mastering the Game of Go without Human Knowledge',
+          description: "PUCT math and why MCTS acts as a policy improvement operator.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/alphago-zero/";
+            },},{id: "notes-curriculum-learning-for-reinforcement-learning-domains-a-framework-and-survey",
+          title: 'Curriculum Learning for Reinforcement Learning Domains: A Framework and Survey',
+          description: "Section-by-section summary of the curriculum learning framework and its design dimensions.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-rl-survey/";
+            },},{id: "notes-a-survey-on-curriculum-learning",
+          title: 'A Survey on Curriculum Learning',
+          description: "Predefined vs automatic curricula and self-paced learning, summarized.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-survey/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-dual-attention-network-based-reinforcement-learning",
+          title: 'Flexible Job Shop Scheduling via Dual Attention Network-Based Reinforcement Learning',
+          description: "Dual-attention method with the math spelled out, plus a note on a missing ablation.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/daniel-dual-attention/";
+            },},{id: "notes-deep-reinforcement-learning-for-dynamic-scheduling-of-a-flexible-job-shop",
+          title: 'Deep Reinforcement Learning for Dynamic Scheduling of a Flexible Job Shop',
+          description: "MDP breakdown plus my comparison tables against related dynamic-scheduling designs.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-dynamic-fjs/";
+            },},{id: "notes-challenges-and-opportunities-in-deep-reinforcement-learning-with-graph-neural-networks",
+          title: 'Challenges and Opportunities in Deep Reinforcement Learning with Graph Neural Networks',
+          description: "Review of how DRL and GNNs combine, and where the open challenges are.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-gnn-review/";
+            },},{id: "notes-deep-rl-for-machine-scheduling-methodology-state-of-the-art-and-future-directions",
+          title: 'Deep RL for Machine Scheduling: Methodology, State of the Art, and Future Directions...',
+          description: "Taxonomy of state, action, and reward designs across the machine-scheduling literature.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-machine-scheduling-survey/";
+            },},{id: "notes-feudal-networks-for-hierarchical-reinforcement-learning",
+          title: 'FeUdal Networks for Hierarchical Reinforcement Learning',
+          description: "Manager/Worker architecture, transition policy gradient, and ablations explained.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/feudal-networks/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-graph-neural-network-and-deep-reinforcement-learning",
+          title: 'Flexible Job-Shop Scheduling via Graph Neural Network and Deep Reinforcement Learning',
+          description: "Detailed method and experiment summary of a key heterogeneous-graph baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-gnn-drl/";
+            },},{id: "notes-the-flexible-job-shop-scheduling-problem-a-review",
+          title: 'The Flexible Job Shop Scheduling Problem: A Review',
+          description: "Schedule classes, problem variants, and solution families, connected back to RL.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-review/";
+            },},{id: "notes-heterogeneous-graph-transformer",
+          title: 'Heterogeneous Graph Transformer',
+          description: "Mutual attention, message passing, and relative temporal encoding, with a worked example.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/heterogeneous-graph-transformer/";
+            },},{id: "notes-knowledge-enabled-multi-agent-drl-for-batch-machine-scheduling-in-semiconductor-fabrication",
+          title: 'Knowledge-enabled Multi-agent DRL for Batch Machine Scheduling in Semiconductor Fabrication',
+          description: "IRL plus MADRL pipeline, reward design, and my critique of it.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/knowledge-madrl-semiconductor/";
+            },},{id: "notes-list-scheduling-and-beam-search-methods-for-the-fjsp-with-sequencing-flexibility",
+          title: 'List Scheduling and Beam Search Methods for the FJSP with Sequencing Flexibility',
+          description: "Problem, method, and results of a strong non-learning FJSP baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/list-scheduling-beam-search-fjsp/";
+            },},{id: "notes-monte-carlo-tree-search-a-review-of-recent-modifications-and-applications",
+          title: 'Monte Carlo Tree Search: A Review of Recent Modifications and Applications',
+          description: "Survey walkthrough of the MCTS phases and variants, with my notes on relevance to scheduling.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mcts-review/";
+            },},{id: "notes-ch-0-introduction",
+          title: 'Ch 0 Introduction',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch0-introduction/";
+            },},{id: "notes-ch-1-traditional-machine-learning-on-graphs",
+          title: 'Ch 1 Traditional Machine Learning on Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch1-traditional-ml-on-graphs/";
+            },},{id: "notes-ch-10-11-15-knowledge-graph",
+          title: 'Ch 10, 11, 15 Knowledge Graph',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch10-11-15-knowledge-graph/";
+            },},{id: "notes-ch-12-gnns-for-recommender-systems",
+          title: 'Ch 12 GNNs for Recommender Systems',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch12-gnns-for-recommender-systems/";
+            },},{id: "notes-ch-14-advanced-topics-in-graph-neural-networks",
+          title: 'Ch 14 Advanced Topics in Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch14-advanced-topics/";
+            },},{id: "notes-ch-16-deep-generative-models-for-graphs",
+          title: 'Ch 16 Deep Generative Models for Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch16-deep-generative-models/";
+            },},{id: "notes-ch-17-geometric-graph-learning",
+          title: 'Ch 17 Geometric Graph Learning',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch17-geometric-graph-learning/";
+            },},{id: "notes-ch-19-label-propagation",
+          title: 'Ch 19 Label Propagation',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch19-label-propagation/";
+            },},{id: "notes-ch-2-node-embedding",
+          title: 'Ch 2 Node Embedding',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch2-node-embedding/";
+            },},{id: "notes-ch-20-scaling-up-gnns",
+          title: 'Ch 20 Scaling Up GNNs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch20-scaling-up-gnns/";
+            },},{id: "notes-ch-21-trustworthy-graph-ai",
+          title: 'Ch 21 Trustworthy Graph AI',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch21-trustworthy-graph-ai/";
+            },},{id: "notes-ch-3-graph-neural-networks",
+          title: 'Ch 3 Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch3-graph-neural-networks/";
+            },},{id: "notes-ch-4-a-general-perspective-on-graph-neural-networks",
+          title: 'Ch 4 A General Perspective on Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch4-general-perspective-on-gnn/";
+            },},{id: "notes-ch-5-gnn-augmentation-and-training",
+          title: 'Ch 5 GNN Augmentation and Training',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch5-gnn-augmentation-and-training/";
+            },},{id: "notes-ch-6-theory-of-graph-neural-networks",
+          title: 'Ch 6 Theory of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch6-theory-of-gnns/";
+            },},{id: "notes-ch-7-limits-of-graph-neural-networks",
+          title: 'Ch 7 Limits of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch7-limits-of-gnns/";
+            },},{id: "notes-ch-8-graph-transformers",
+          title: 'Ch 8 Graph Transformers',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch8-graph-transformers/";
+            },},{id: "notes-ch-9-machine-learning-with-heterogeneous-graphs",
+          title: 'Ch 9 Machine Learning with Heterogeneous Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch9-heterogeneous-graphs/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map plus my conclusions on how to design and train a GNN.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-overview/";
+            },},{id: "notes-clustering-method",
+          title: 'Clustering Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-clustering-method/";
+            },},{id: "notes-factor-analysis",
+          title: 'Factor Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-factor-analysis/";
+            },},{id: "notes-prerequisite",
+          title: 'Prerequisite',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-prerequisite/";
+            },},{id: "notes-principal-component-analysis",
+          title: 'Principal Component Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-principal-component-analysis/";
+            },},{id: "notes-ch-14-general-purpose-procedures-for-deterministic-scheduling",
+          title: 'Ch 14 General Purpose Procedures for Deterministic Scheduling',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch14-general-purpose-procedures/";
+            },},{id: "notes-ch-15-more-advance-general-purpose-procedures",
+          title: 'Ch 15 More Advance General Purpose Procedures',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch15-more-advance-general-purpose-procedures/";
+            },},{id: "notes-ch-16-modeling-and-solving-scheduling-problems-in-practice",
+          title: 'Ch 16 Modeling and Solving Scheduling Problems in Practice',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch16-modeling-and-solving-scheduling-problems/";
+            },},{id: "notes-ch-2-deterministic-models-preliminaries",
+          title: 'Ch 2 Deterministic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch2-deterministic-models-preliminaries/";
+            },},{id: "notes-ch-3-single-machine-method",
+          title: 'Ch 3 Single Machine Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch3-single-machine-method/";
+            },},{id: "notes-ch-4-advance-single-machine",
+          title: 'Ch 4 Advance Single Machine',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch4-advance-single-machine/";
+            },},{id: "notes-ch-5-parallel-machine-model",
+          title: 'Ch 5 Parallel Machine Model',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch5-parallel-machine-model/";
+            },},{id: "notes-ch-6-flow-shop",
+          title: 'Ch 6 Flow Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch6-flow-shop/";
+            },},{id: "notes-ch-7-job-shop",
+          title: 'Ch 7 Job Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch7-job-shop/";
+            },},{id: "notes-ch-8-open-shop",
+          title: 'Ch 8 Open Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch8-open-shop/";
+            },},{id: "notes-ch-9-stochastic-models-preliminaries",
+          title: 'Ch 9 Stochastic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch9-stochastic-models-preliminaries/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map: which chapters are covered and how they fit together.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-overview/";
+            },},{id: "notes-real-time-scheduling-for-dynamic-partial-no-wait-multiobjective-flexible-job-shop-by-drl",
+          title: 'Real-Time Scheduling for Dynamic Partial-No-Wait Multiobjective Flexible Job Shop by DRL',
+          description: "Hierarchical multi-agent MDP with rule tables and Pareto metrics.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/realtime-partial-no-wait-fjs/";
+            },},{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%6F%6B%75%6D%6F%63%68%75%35%35@%67%6D%61%69%6C.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-github',
+        title: 'GitHub',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://github.com/okumochu", "_blank");
+        },
+      },{
+        id: 'social-linkedin',
+        title: 'LinkedIn',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.linkedin.com/in/chia-fan-chu", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=BfaixEUAAAAJ", "_blank");
+        },
+      },];
+
+</script> <script src="/assets/al_search/js/shortcut-key.js"></script> </body> </html>

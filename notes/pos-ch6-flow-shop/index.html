@@ -1,0 +1,317 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Ch 6 Flow Shop | Chia-Fan Chu </title> <meta name="author" content="Chia-Fan Chu"> <meta name="description" content="Chia-Fan Chu (禇家帆): graduate student at National Taiwan University working on reinforcement learning for production scheduling and applied operations research. "> <meta name="keywords" content="chia-fan chu, reinforcement learning, scheduling, operations research, national taiwan university"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;%E2%9A%9B%EF%B8%8F&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/assets/css/main.css?v=f0b101217084a90093badfe99ff9a7d1"> <link rel="canonical" href="https://okumochu.github.io/notes/pos-ch6-flow-shop/"> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/"> <span class="font-weight-bold">Chia-Fan</span> Chu </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/cv/">CV </a> </li> <li class="nav-item active"> <a class="nav-link" href="/notes/">shared notes <span class="sr-only">(current)</span> </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title">Ch 6 Flow Shop</h1> <p class="post-description"></p> </header> <article> <blockquote> <ol> <li>All jobs follow the same route (a sequence of operations)</li> <li>Maybe limited buffer between neighbor machine (<strong>blocking</strong>)</li> <li>The main objective of flow shop is \(C_{max}\)</li> </ol> </blockquote> <blockquote> <p><strong>Note</strong> 這邊會開始出現 \(p_{ij}\) 也就是不同的 job 在不同的 machine 上有不同的加工時間。前面探討的都是單一加工而已。 e.g. single machine, parallel machine (雖有平行，但是加工也只有一種)</p> </blockquote> <p><strong>Unlimited Intermediate Storage</strong></p> <blockquote> <p>指兩個operation之間的 buffer 是無限。通常這個在實務上是滿常見的只要生產的物品體積比較小就有可能滿足</p> </blockquote> <h2 id="flows-shops-with-unlimited-intermediate-storage">Flows Shops with Unlimited Intermediate Storage</h2> <p>有證明指出，在 flow shop 問題中，前兩個和後兩個加工的機台存在不用改變 job sequence 的最佳排程。也就是說 \(F_2\vert \vert C_{max}\) and \(F_3\vert \vert C_{max}\) 存在不用更換 job sequence (permutation, \(prmu\)) 的最佳排程 (一個沒有 permutation constraint 的排程問題會變得非常的困難)</p> <p>對於一個 \(F_m\vert prmu\vert C_{max}\) 問題，可以轉換成下列形式用來<strong>算出 makespan</strong></p> <ul> <li> <p>算法 1 (recursive function)</p> <p>給定 job sequence \(j_1, j_2, …, j_n\) ，\(C_{max}\) 就可以透過以下方式算出來</p> <p>max 是為了確保同一時間 machine 只會處理一個 job 不能重疊，如果上個 job 還沒做完，要等一下</p> <p><img src="/assets/notes/pos-ch6-flow-shop/Screenshot_2025-04-21_at_4.22.22_PM.png" alt="Screenshot_2025-04-21_at_4.22.22_PM" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> <li> <p>算法 2 (critical path on directed graph)</p> <p>可以把左邊這張圖畫成右邊的</p> <p><img src="/assets/notes/pos-ch6-flow-shop/Screenshot_2025-04-21_at_4.37.53_PM.png" alt="Screenshot_2025-04-21_at_4.37.53_PM" loading="lazy" style="max-width: 100%; height: auto;"></p> <p><img src="/assets/notes/pos-ch6-flow-shop/Screenshot_2025-04-21_at_4.38.22_PM.png" alt="Screenshot_2025-04-21_at_4.38.22_PM" loading="lazy" style="max-width: 100%; height: auto;"></p> <blockquote> <p><strong>Note</strong> 右邊這張圖，其實就是指算法 1 的 max 邏輯 算出右下角那個 job 的 earliest finish time 就是 \(C_{max}\)</p> </blockquote> <p>把右邊那張圖的甘特圖畫出來就會長下面這樣，因為 critical path 代表的是不能延後進行的 path (earliest starting time = latest starting time)，也就是說這個 path 上的 operation 都是緊密進行的一個接著一個</p> <p><img src="/assets/notes/pos-ch6-flow-shop/Screenshot_2025-04-21_at_4.47.28_PM.png" alt="Screenshot_2025-04-21_at_4.47.28_PM" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> </ul> <p>\(F_2\vert \vert C_{max}\) <strong>with</strong> <strong>Unlimited Intermediate Storage</strong></p> <p>使用 <strong>Johnson’s Rule</strong> 得到<strong>最佳解</strong></p> <ul> <li>在 \(F_2\) 下，所有的 job 有兩個加工 (機台) 要做可以分成 <ul> <li>第一個加工做比較快的 job → Set 1</li> <li>第一個加工做比較慢的 job → Set 2</li> </ul> </li> <li>排程的結果就是 Set 1 的 job <strong>先</strong>用第一個機台加工時間 SPT 排，Set 2 的 job <strong>再</strong>用第二個機台加工時間 LPT 排</li> </ul> <blockquote> <p><strong>Note</strong> 主要的精神就是讓第二個機台不要 idle，所以第一個加工比較快的 job 趕快做一做就可以到讓第二個機台早點開工。這樣可能就上短下長 (甘特圖上)，此再用 Set 2 的 LPT 補回來</p> <p>note: 並不是只有這個 SPT(1), LPT(2) 能產生出最佳解</p> </blockquote> <ul> <li>Proof <ul> <li>假設有兩個 job \(j\) and \(k\)，<strong>\(j\) 在 \(k\) 前面</strong>，且這兩個 job 違反 Johnson’s Rule 的其中一個設定，證明遵守 Rule 的效果會大於或等於不遵守 <ul> <li>兩個不同 Set，\(j\) 在 Set 2, \(k\) 在 Set 1， (Set 1 應該要排在前面)</li> <li>兩個都在 Set 1，但是 \(j\) 的第一個加工時間比 \(k\) 長 (Not SPT)</li> <li>兩個都在 Set 2，但是 \(j\) 的第二個加工時間比 \(k\) 短 (Not LPT)</li> </ul> </li> <li>現在有兩個排程 l → j → k → h (original) 和 l → k → j → h (interchanged) <ul> <li>\(C_{2, h}\) = max (\(C_{2,k}\), \(C_{1,h}\)) + \(p_{2, h}\)</li> <li>new \(C_{2, h}\) = max ( new \(C_{2, j}\), new \(C_{1, h}\)) + \(p_{2, h}\)</li> <li>整個算式寫出來就會發現在上面三個任意一個情況下都滿足 new \(C_{2, h}\) ≤ \(C_{2, h}\)</li> </ul> </li> </ul> </li> </ul> \[F_m\vert prmu\vert C_{max}\] <ul> <li>使用 Mixed Integer Programming (MIP) <ul> <li>這個 \(I\) 就是在指同一個 machine \(i\) 下， 從當前 job 到下一個 job 需要 idle 多久</li> <li>這個 \(W\) 就是在指同一個 job position \(k\) 下，到下一個加工需要 wait 多久</li> </ul> <blockquote> <p><strong>Note</strong> \(I\) 和 \(W\) 有彼此的關係化甘特圖出來就會知道</p> </blockquote> <p><img src="/assets/notes/pos-ch6-flow-shop/Screenshot_2025-04-23_at_3.05.14_PM.png" alt="Screenshot_2025-04-23_at_3.05.14_PM" loading="lazy" style="max-width: 100%; height: auto;"></p> <p><img src="/assets/notes/pos-ch6-flow-shop/image.png" alt="image" loading="lazy" style="max-width: 100%; height: auto;"></p> <blockquote> <p><strong>Note</strong> Minimize makespan = Minimize the idle time on the last machine</p> </blockquote> </li> <li> <p>Slope Heuristic</p> <p>根據 slope index 由大到小來排序工作</p> <blockquote> <p><strong>Note</strong> 越前面的加工應該要 process time 越短的先，越後面的加工應該要 process time 越長的越先。 e.g. 如果一 job 在最前面的加工中 process time 很大 乘上負的 weight後整個 slope index 就會很小使其 job 在順序上會往後排</p> </blockquote> \[\text{Slope Index}_j = - \sum^{m}_{i=1}{(m-(2i-1))p_{ij} }\] <ul> <li> <p>Example</p> <p><img src="/assets/notes/pos-ch6-flow-shop/ef8246d0-19b2-4716-abdd-2b15b05595ae.png" alt="ef8246d0-19b2-4716-abdd-2b15b05595ae" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> </ul> </li> </ul> <h2 id="proportionate-flow-shop-with-unlimited-intermediate-storage"><strong>Proportionate Flow Shop with Unlimited Intermediate Storage</strong></h2> <p>\(F_m\vert p_{ij} = p_j\vert C_{max}\) 指每個 job 在不同機台的 process time 都相同</p> <ul> <li> <p>這種退化的 Flow Shop 就能透過之前的演算法求出最佳解</p> <p><img src="/assets/notes/pos-ch6-flow-shop/Screenshot_2025-04-23_at_5.04.03_PM.png" alt="Screenshot_2025-04-23_at_5.04.03_PM" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> </ul> <h2 id="flow-shops-with-limited-intermediate-storage">Flow Shops with Limited Intermediate Storage</h2> <h3 id="intermediate-storage--0-no-buffer">Intermediate Storage = 0 <strong>(No buffer)</strong> </h3> <p>對於一個 \(F_m\vert block\vert C_{max}\) 問題，可以轉換成下列形式用來<strong>算出 makespan</strong></p> <ul> <li> <p>Recursive Function</p> <p><img src="/assets/notes/pos-ch6-flow-shop/image-1.png" alt="image 1" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> <li> <p>Directed Graph</p> <p>Find the Critical Path</p> <p><img src="/assets/notes/pos-ch6-flow-shop/image-2.png" alt="image 2" loading="lazy" style="max-width: 100%; height: auto;"></p> <p><img src="/assets/notes/pos-ch6-flow-shop/image-3.png" alt="image 3" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> </ul> \[F_2\vert block\vert C_{max}\] <ul> <li> <p>可以視為 TSP problem (\(C_{max}\) 就是所有點經過的 cost 加總)</p> <p>想像成上下兩排同樣順序 job 的 operation 要做。如果<strong>目前的 job上面的加工的結束時間比較大</strong> 還是 <strong>上一個 job 下面的的加工的結束時間比較大</strong>，就要等他 (no buffer) 所以取 max。</p> <blockquote> <p><strong>Note</strong> 同樣的 job 到下個加工的 cost = 0</p> </blockquote> <p><img src="/assets/notes/pos-ch6-flow-shop/Screenshot_2025-04-25_at_10.48.42_AM.png" alt="Screenshot_2025-04-25_at_10.48.42_AM" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> </ul> <h3 id="limited-intermediate-storage">Limited Intermediate Storage</h3> \[F_m\vert block\vert C_{max}\] <p>如果 m ≥ 3 就是 strongly NP-hard</p> <ul> <li> <p>Profile Fitting (Heuristic)</p> <p>\(D_{i,j}\) = earliest departure time on machine \(i\) job \(k\)</p> <p>有三個公式</p> <ul> <li> <strong>開頭機台</strong>是要看我目前機台什麼時候做完，和那個正在佔用我的下一個加工機台的 job 什麼時候會走。取最大，因為 no buffer 所以如果占用機台的 job 不走也不能 release</li> <li> <strong>中間機台</strong>是看上個加工機台我最快能走的時間 (上一步算出來的) 加上這個機台的加工時間，老樣子因為 no buffer 所以要看下個加工機台好了沒</li> <li> <strong>結尾機台</strong>就是看最快能走時間，和目前這個機台加工完沒，取最大，再加上加工時間</li> </ul> <p><img src="/assets/notes/pos-ch6-flow-shop/Screenshot_2025-04-24_at_9.21.36_PM.png" alt="Screenshot_2025-04-24_at_9.21.36_PM" loading="lazy" style="max-width: 100%; height: auto;"></p> <ul> <li> <p>最後再把每個 job 的以下式子算出來挑出最當前最小的排他。因為這個式子代表當前排他 idle time 會最小</p> \[\sum_{i=1}^{m} \left( D_{i,j_2} - D_{i,j_1} - p_{i,j_2} \right)\] </li> <li> <p>下一個循環就會從剛剛排到第二個位置的 \(D_1\) ~ \(D_m\) 繼續</p> </li> </ul> </li> </ul> </article> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Chia-Fan Chu. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/assets/al_math/js/mathjax-setup.js"></script> <script defer src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6" crossorigin="anonymous"></script> <script src="/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/assets/al_img_tools/js/zoom.js"></script> <script defer src="/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-about",
+    title: "about",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/";
+    },
+  },{id: "nav-cv",
+          title: "CV",
+          description: "Education, experience, publications, and skills.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/cv/";
+          },
+        },{id: "nav-shared-notes",
+          title: "shared notes",
+          description: "Notes I keep while reading papers and working through courses. Shared as-is; most are living documents, so expect a few rough edges.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/notes/";
+          },
+        },{id: "notes-mastering-the-game-of-go-without-human-knowledge",
+          title: 'Mastering the Game of Go without Human Knowledge',
+          description: "PUCT math and why MCTS acts as a policy improvement operator.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/alphago-zero/";
+            },},{id: "notes-curriculum-learning-for-reinforcement-learning-domains-a-framework-and-survey",
+          title: 'Curriculum Learning for Reinforcement Learning Domains: A Framework and Survey',
+          description: "Section-by-section summary of the curriculum learning framework and its design dimensions.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-rl-survey/";
+            },},{id: "notes-a-survey-on-curriculum-learning",
+          title: 'A Survey on Curriculum Learning',
+          description: "Predefined vs automatic curricula and self-paced learning, summarized.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-survey/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-dual-attention-network-based-reinforcement-learning",
+          title: 'Flexible Job Shop Scheduling via Dual Attention Network-Based Reinforcement Learning',
+          description: "Dual-attention method with the math spelled out, plus a note on a missing ablation.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/daniel-dual-attention/";
+            },},{id: "notes-deep-reinforcement-learning-for-dynamic-scheduling-of-a-flexible-job-shop",
+          title: 'Deep Reinforcement Learning for Dynamic Scheduling of a Flexible Job Shop',
+          description: "MDP breakdown plus my comparison tables against related dynamic-scheduling designs.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-dynamic-fjs/";
+            },},{id: "notes-challenges-and-opportunities-in-deep-reinforcement-learning-with-graph-neural-networks",
+          title: 'Challenges and Opportunities in Deep Reinforcement Learning with Graph Neural Networks',
+          description: "Review of how DRL and GNNs combine, and where the open challenges are.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-gnn-review/";
+            },},{id: "notes-deep-rl-for-machine-scheduling-methodology-state-of-the-art-and-future-directions",
+          title: 'Deep RL for Machine Scheduling: Methodology, State of the Art, and Future Directions...',
+          description: "Taxonomy of state, action, and reward designs across the machine-scheduling literature.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-machine-scheduling-survey/";
+            },},{id: "notes-feudal-networks-for-hierarchical-reinforcement-learning",
+          title: 'FeUdal Networks for Hierarchical Reinforcement Learning',
+          description: "Manager/Worker architecture, transition policy gradient, and ablations explained.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/feudal-networks/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-graph-neural-network-and-deep-reinforcement-learning",
+          title: 'Flexible Job-Shop Scheduling via Graph Neural Network and Deep Reinforcement Learning',
+          description: "Detailed method and experiment summary of a key heterogeneous-graph baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-gnn-drl/";
+            },},{id: "notes-the-flexible-job-shop-scheduling-problem-a-review",
+          title: 'The Flexible Job Shop Scheduling Problem: A Review',
+          description: "Schedule classes, problem variants, and solution families, connected back to RL.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-review/";
+            },},{id: "notes-heterogeneous-graph-transformer",
+          title: 'Heterogeneous Graph Transformer',
+          description: "Mutual attention, message passing, and relative temporal encoding, with a worked example.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/heterogeneous-graph-transformer/";
+            },},{id: "notes-knowledge-enabled-multi-agent-drl-for-batch-machine-scheduling-in-semiconductor-fabrication",
+          title: 'Knowledge-enabled Multi-agent DRL for Batch Machine Scheduling in Semiconductor Fabrication',
+          description: "IRL plus MADRL pipeline, reward design, and my critique of it.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/knowledge-madrl-semiconductor/";
+            },},{id: "notes-list-scheduling-and-beam-search-methods-for-the-fjsp-with-sequencing-flexibility",
+          title: 'List Scheduling and Beam Search Methods for the FJSP with Sequencing Flexibility',
+          description: "Problem, method, and results of a strong non-learning FJSP baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/list-scheduling-beam-search-fjsp/";
+            },},{id: "notes-monte-carlo-tree-search-a-review-of-recent-modifications-and-applications",
+          title: 'Monte Carlo Tree Search: A Review of Recent Modifications and Applications',
+          description: "Survey walkthrough of the MCTS phases and variants, with my notes on relevance to scheduling.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mcts-review/";
+            },},{id: "notes-ch-0-introduction",
+          title: 'Ch 0 Introduction',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch0-introduction/";
+            },},{id: "notes-ch-1-traditional-machine-learning-on-graphs",
+          title: 'Ch 1 Traditional Machine Learning on Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch1-traditional-ml-on-graphs/";
+            },},{id: "notes-ch-10-11-15-knowledge-graph",
+          title: 'Ch 10, 11, 15 Knowledge Graph',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch10-11-15-knowledge-graph/";
+            },},{id: "notes-ch-12-gnns-for-recommender-systems",
+          title: 'Ch 12 GNNs for Recommender Systems',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch12-gnns-for-recommender-systems/";
+            },},{id: "notes-ch-14-advanced-topics-in-graph-neural-networks",
+          title: 'Ch 14 Advanced Topics in Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch14-advanced-topics/";
+            },},{id: "notes-ch-16-deep-generative-models-for-graphs",
+          title: 'Ch 16 Deep Generative Models for Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch16-deep-generative-models/";
+            },},{id: "notes-ch-17-geometric-graph-learning",
+          title: 'Ch 17 Geometric Graph Learning',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch17-geometric-graph-learning/";
+            },},{id: "notes-ch-19-label-propagation",
+          title: 'Ch 19 Label Propagation',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch19-label-propagation/";
+            },},{id: "notes-ch-2-node-embedding",
+          title: 'Ch 2 Node Embedding',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch2-node-embedding/";
+            },},{id: "notes-ch-20-scaling-up-gnns",
+          title: 'Ch 20 Scaling Up GNNs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch20-scaling-up-gnns/";
+            },},{id: "notes-ch-21-trustworthy-graph-ai",
+          title: 'Ch 21 Trustworthy Graph AI',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch21-trustworthy-graph-ai/";
+            },},{id: "notes-ch-3-graph-neural-networks",
+          title: 'Ch 3 Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch3-graph-neural-networks/";
+            },},{id: "notes-ch-4-a-general-perspective-on-graph-neural-networks",
+          title: 'Ch 4 A General Perspective on Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch4-general-perspective-on-gnn/";
+            },},{id: "notes-ch-5-gnn-augmentation-and-training",
+          title: 'Ch 5 GNN Augmentation and Training',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch5-gnn-augmentation-and-training/";
+            },},{id: "notes-ch-6-theory-of-graph-neural-networks",
+          title: 'Ch 6 Theory of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch6-theory-of-gnns/";
+            },},{id: "notes-ch-7-limits-of-graph-neural-networks",
+          title: 'Ch 7 Limits of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch7-limits-of-gnns/";
+            },},{id: "notes-ch-8-graph-transformers",
+          title: 'Ch 8 Graph Transformers',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch8-graph-transformers/";
+            },},{id: "notes-ch-9-machine-learning-with-heterogeneous-graphs",
+          title: 'Ch 9 Machine Learning with Heterogeneous Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch9-heterogeneous-graphs/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map plus my conclusions on how to design and train a GNN.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-overview/";
+            },},{id: "notes-clustering-method",
+          title: 'Clustering Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-clustering-method/";
+            },},{id: "notes-factor-analysis",
+          title: 'Factor Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-factor-analysis/";
+            },},{id: "notes-prerequisite",
+          title: 'Prerequisite',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-prerequisite/";
+            },},{id: "notes-principal-component-analysis",
+          title: 'Principal Component Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-principal-component-analysis/";
+            },},{id: "notes-ch-14-general-purpose-procedures-for-deterministic-scheduling",
+          title: 'Ch 14 General Purpose Procedures for Deterministic Scheduling',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch14-general-purpose-procedures/";
+            },},{id: "notes-ch-15-more-advance-general-purpose-procedures",
+          title: 'Ch 15 More Advance General Purpose Procedures',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch15-more-advance-general-purpose-procedures/";
+            },},{id: "notes-ch-16-modeling-and-solving-scheduling-problems-in-practice",
+          title: 'Ch 16 Modeling and Solving Scheduling Problems in Practice',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch16-modeling-and-solving-scheduling-problems/";
+            },},{id: "notes-ch-2-deterministic-models-preliminaries",
+          title: 'Ch 2 Deterministic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch2-deterministic-models-preliminaries/";
+            },},{id: "notes-ch-3-single-machine-method",
+          title: 'Ch 3 Single Machine Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch3-single-machine-method/";
+            },},{id: "notes-ch-4-advance-single-machine",
+          title: 'Ch 4 Advance Single Machine',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch4-advance-single-machine/";
+            },},{id: "notes-ch-5-parallel-machine-model",
+          title: 'Ch 5 Parallel Machine Model',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch5-parallel-machine-model/";
+            },},{id: "notes-ch-6-flow-shop",
+          title: 'Ch 6 Flow Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch6-flow-shop/";
+            },},{id: "notes-ch-7-job-shop",
+          title: 'Ch 7 Job Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch7-job-shop/";
+            },},{id: "notes-ch-8-open-shop",
+          title: 'Ch 8 Open Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch8-open-shop/";
+            },},{id: "notes-ch-9-stochastic-models-preliminaries",
+          title: 'Ch 9 Stochastic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch9-stochastic-models-preliminaries/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map: which chapters are covered and how they fit together.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-overview/";
+            },},{id: "notes-real-time-scheduling-for-dynamic-partial-no-wait-multiobjective-flexible-job-shop-by-drl",
+          title: 'Real-Time Scheduling for Dynamic Partial-No-Wait Multiobjective Flexible Job Shop by DRL',
+          description: "Hierarchical multi-agent MDP with rule tables and Pareto metrics.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/realtime-partial-no-wait-fjs/";
+            },},{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%6F%6B%75%6D%6F%63%68%75%35%35@%67%6D%61%69%6C.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-github',
+        title: 'GitHub',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://github.com/okumochu", "_blank");
+        },
+      },{
+        id: 'social-linkedin',
+        title: 'LinkedIn',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.linkedin.com/in/chia-fan-chu", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=BfaixEUAAAAJ", "_blank");
+        },
+      },];
+
+</script> <script src="/assets/al_search/js/shortcut-key.js"></script> </body> </html>

@@ -1,0 +1,317 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Monte Carlo Tree Search: A Review of Recent Modifications and Applications | Chia-Fan Chu </title> <meta name="author" content="Chia-Fan Chu"> <meta name="description" content="Survey walkthrough of the MCTS phases and variants, with my notes on relevance to scheduling."> <meta name="keywords" content="chia-fan chu, reinforcement learning, scheduling, operations research, national taiwan university"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;%E2%9A%9B%EF%B8%8F&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/assets/css/main.css?v=f0b101217084a90093badfe99ff9a7d1"> <link rel="canonical" href="https://okumochu.github.io/notes/mcts-review/"> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/"> <span class="font-weight-bold">Chia-Fan</span> Chu </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/cv/">CV </a> </li> <li class="nav-item active"> <a class="nav-link" href="/notes/">shared notes <span class="sr-only">(current)</span> </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title">Monte Carlo Tree Search: A Review of Recent Modifications and Applications</h1> <p class="post-description">Survey walkthrough of the MCTS phases and variants, with my notes on relevance to scheduling.</p> </header> <article> <hr> <h2 id="introduction">Introduction</h2> <blockquote> <p>Monte Carlo Tree Search (MCTS) is a decision-making algorithm that consists in searching combinatorial spaces represented by trees.</p> </blockquote> <ul> <li>AlphaGO 在應用 MCTS 的時候都會把強化學習當作是 backbone。並且不只是圍棋遊戲，MCTS 幾乎應用在所有的 combinatorial game 裡面 e.g., poker, chess, …</li> <li>所以當然除了遊戲之後 plannig, scheduling, combinatorial optimization 經常會使用，更精確的是問題可以被描述成 MDP 就可以應用到 MCTS <ul> <li>MDP: Discrete-time stochastic control process</li> </ul> </li> </ul> <hr> <h2 id="methodology">Methodology</h2> <p>最原始的 MCTS 是透過 randomn rollout 的統計量的 tree policy 來 branch out, selection</p> <ol> <li>Rollout 到底 (monte carlo) 這件事情非常耗費資源</li> <li>隨機 rollout 在困難的問題 (每步上千種分支) 上探索效率非常低</li> <li>不能解 continuous environment，但是 RL policy 可以 所以這個 tree policy希望能用 NN 來訓練</li> </ol> <h3 id="classic-mcts-section-2">Classic MCTS (Section 2)</h3> <p>Each MCTS iteration has <strong>four phases</strong>:</p> <ol> <li> <strong>Selection:</strong> Traverse existing tree from root using <strong>tree policy</strong> to select a leaf node</li> <li> <strong>Expansion:</strong> Add one or more child nodes to the tree</li> <li> <strong>Simulation</strong>: Random playout from the new node to a terminal state (the “Monte Carlo” part)</li> <li> <strong>Backpropagation</strong>: Propagate the “score” back along the path from leaf to root, updating statistics <blockquote> <p>MCTS 叫做 “anytime” algorithm 這個方法能在任何時候停止給你目前最好的答案</p> </blockquote> </li> </ol> <p><img src="/assets/notes/mcts-review/Pasted-image-20260411152200.png" alt="Pasted image 20260411152200" loading="lazy" style="max-width: 100%; height: auto;"> <img src="/assets/notes/mcts-review/Pasted-image-20260411153014.png" alt="Pasted image 20260411153014" loading="lazy" style="max-width: 100%; height: auto;"></p> <h3 id="tree-policy">Tree Policy</h3> <p>目的在於設計出統計量使其在 selection 的過程能夠平衡 exploration and exploitation 最常使用的就是 <strong>UCT (Upper Confidence bounds applied to Trees)</strong>，也就是 multi-armed bandit 問題中的 UCB1 演算法，Kocsis &amp; Szepesvári (2006) 把它搬到 tree search 上使用。其特性為隨著模擬次數趨近無限，UCT 會收斂到 optimal policy</p> <p>這是 UCT 包含以下幾個 term</p> <ol> <li>多少次經過這個 state 以及</li> <li>通過這個 state select 這個 action 的次數</li> <li>\(Q(s,a)\) 跟強化學習的一模一樣: 預期未來會得到的 reward</li> <li>Constant C 越大就是越能探索，因為代表拜訪次數少的有加成</li> </ol> \[a^* = \arg\max_{a \in A(s)} \left\{ Q(s,a) + C\sqrt{\frac{\ln[N(s)]}{N(s,a)} } \right\}\] <p>但是後面就有發展出各式各樣的 policy 依據需求，沒有最好只有最適合。多數的修改 (add bias) 只在該問題會變好，去其他問題反而變糟</p> <table> <thead> <tr> <th>Mechanism</th> <th>Description</th> </tr> </thead> <tbody> <tr> <td><strong>UCT</strong></td> <td>Balances exploration vs. exploitation using the UCB1 formula</td> </tr> <tr> <td><strong>UCB1-Tuned</strong></td> <td>Improves UCT by also considering the variance of rewards: caps the exploration bonus so uncertain actions don’t get over-explored</td> </tr> <tr> <td><strong>EXP3</strong></td> <td>Makes no assumption on reward distribution; uses exponential weighting to handle partial observability (adversarial settings)</td> </tr> <tr> <td><strong>Thompson Sampling</strong></td> <td>Bayesian approach: maintains a belief (posterior) over reward, samples from it to decide , naturally balances explore/exploit</td> </tr> <tr> <td><strong>RAVE</strong></td> <td>Shares action stats across sibling subtrees for faster early estimates; blends RAVE value with real value, trusting RAVE less as visits grow</td> </tr> <tr> <td><strong>Transposition Tables</strong></td> <td>Detects duplicate states and merges them into a DAG, avoiding redundant search of the same position reached via different move orders</td> </tr> <tr> <td><strong>History Heuristic</strong></td> <td>Tracks global success stats per action across the whole tree; biases rollout policy toward historically good moves (ε-greedy or Boltzmann)</td> </tr> </tbody> </table> <h2 id="games-with-perfect-information">Games with Perfect Information</h2> <p>這個部分在說明如果是 Perfect Information (可以看到所有 state，沒有東西是被藏起來的。像是圍棋，反例就是 Poker) 的狀況要如何 improve MCTS。這些遊戲的問題在於 search space 超級大</p> <h3 id="action-reduction">Action Reduction</h3> <p>這個方法主要是處理在每一步可以採取的 action 實在太多使用的，因為這樣會讓樹太寬，有限的計算資源下無法深層探索。 其他的方法大致上就是</p> <ol> <li>action abstraction: 把多部 action 包在一起，中間就不會分支</li> <li>action reduction: 不要 branch out 所有分支</li> </ol> <table> <thead> <tr> <th>Method</th> <th>Key Idea</th> </tr> </thead> <tbody> <tr> <td><strong>Heuristic Move Pruning</strong></td> <td>Use domain heuristics (card stats, heat maps) to prune actions</td> </tr> <tr> <td><strong>Script-based Reduction</strong></td> <td>Assign action scripts to unit groups instead of individual unit actions</td> </tr> <tr> <td><strong>Option MCTS</strong></td> <td>Replace atomic actions with predefined “options”</td> </tr> <tr> <td><strong>PGSS</strong></td> <td>Constraints (prune losing actions) + Options (bias toward desired trajectories)</td> </tr> <tr> <td><strong>Informed MCTS</strong></td> <td>Use Calibrated Naive Bayes / Action-Type Independence models as priors</td> </tr> <tr> <td><strong>Beam MCTS</strong></td> <td>Keep only top-\(W\) most promising nodes at depth \(d\), prune the rest</td> </tr> <tr> <td><strong>VSP-MCTS</strong></td> <td>Variable simulation periods; progressively widen action set</td> </tr> <tr> <td><strong>Progressive Bias</strong></td> <td>Extend UCB with heuristic value that decays with visit count</td> </tr> </tbody> </table> <p><strong>Macro-actions (skill)</strong> predefined, not learned <img src="/assets/notes/mcts-review/Pasted-image-20260411172323.png" alt="Pasted image 20260411172323" loading="lazy" style="max-width: 100%; height: auto;"></p> <h3 id="uct-alternatives">UCT Alternatives</h3> <p>要解決 UCT 在 perfect information 遊戲中的問題</p> <ol> <li> <strong>Cold-Start Problem:</strong> 初期 UCT 都是在隨機探索，為了能夠加快收斂，論文提到很多時候一個 action 的好壞不需要 depend on state。在這樣的基礎下就可以共享統計量，並在後期慢慢收斂的時候，再把真實的更新權重還回真實的 MC 估計</li> <li> <strong>Optimistic Moves:</strong> UCT 發現了一條看起來能贏的路徑，就不斷回去探索它、給它高分。但對手其實只需要一步就能破解。在 MCTS 找到那個反駁之前，它會持續被這條假路徑誤導。</li> <li> <strong>Average loophole:</strong> 一個 state 下有 100 次 simulation，其中 95 次贏、5 次輸。UCT 會給它很高的平均分。但如果那 5 次輸的路徑對手<mark>是一定會走的最佳反擊</mark>，那這個 state 其實是必輸的。平均值完全掩蓋了這個事實，所以解法就是 Minimax</li> <li> <strong>Non-uniformity of tree shape:</strong> 當搜索樹的形狀不均勻 (某些分支深、某些淺)，再計算分數上會有問題，因為不同深度的分數 (+10 分) 變異是不同的，越多步數變異越大。所以步數大的會有這個問題 <ul> <li>解法就是把所有分數畫出來並且找一個 \(\theta\) (能最平均分配) 當作分水嶺來二元區分贏還輸，這個就是 <mark>optimal threshold selection</mark> ，</li> <li>優點: robustness to outlier, scale invariance, bounded variance (Bernoulli) Note: 這種會在遊戲中比較常出現，因為做錯選擇導致很快就輸掉。但是組合最佳化問題不太會有這樣的狀況發生因為該有多少個實體要排序就是固定的</li> </ul> </li> </ol> <table> <thead> <tr> <th>Method</th> <th>Modification</th> </tr> </thead> <tbody> <tr> <td><strong>AMAF / RAVE</strong></td> <td>Share action values across subtrees using all-moves-as-first heuristic</td> </tr> <tr> <td><strong>Sufficiency Threshold</strong></td> <td>Set \(C=0\) when any \(Q(s,a) &gt; \tau\) to reduce exploration of “solved” states</td> </tr> <tr> <td><strong>MCTS-Minimax Hybrids</strong></td> <td>Shallow minimax search within MCTS phases to catch tactical traps</td> </tr> <tr> <td><strong>Maximum Frequency</strong></td> <td>Adjust threshold for recalculating playout scores to maximize difference between optimal and other moves</td> </tr> </tbody> </table> <h3 id="early-termination">Early Termination</h3> <p>Terminate simulations at a <strong>cut-off depth</strong> instead of playing to terminal state, using an <strong>evaluation function</strong> \(v(s)\) Even a <strong>weak evaluation function</strong> can outperform long random playouts (Lorentz 2016). Neural networks can approximate evaluation functions, allowing omission of the simulation step entirely (Goodman 2019). 下面這個就是其中一個設計出來的例子 \(Q'(s,a) = (1-\alpha) \frac{r_{s,a} }{n_{s,a} } + \alpha \cdot v_{s,a}\)</p> <h3 id="games-with-imperfect-information-section-4">Games with Imperfect Information (Section 4)</h3> <p>這個部分就是在探討 Imperfect information condition，此時不像是 PI 問題在於爆炸性成章的 search space，而是 patially observation。因為資訊不完整的狀況下連樹長什麼樣子都不確定。其中有幾個解法 <mark>以下我是用AI 摘要</mark></p> <ol> <li> <strong>Determinization (PIMC):</strong> 隨機假設 hidden state e.g., 假設對手的牌是什麼 <ul> <li>大量重複試驗來統計結果，但是會造成的問題是 <ul> <li>Strategy Fusion: 平均下來說策略可能會變。假設 50% 機率對手有 A 牌（最佳應對：打 X）、50% 有 B 牌（最佳應對：打 Y）。平均後可能選了 Z，但 Z 在兩種情況下都不好</li> <li>Non-locality: 每次 determinization 是獨立求解的，無法發現「試探性」的 action（為了蒐集資訊而做的次優 action）。例如在撲克中刻意加注來測試對手牌力，PIMC 永遠不會發現這種策略</li> <li>Budget Splitting: 計算資源被分散到多棵獨立的搜索樹中，每棵樹分到的模擬次數變少，搜索品質下降</li> </ul> </li> </ul> </li> <li> <strong>Information Sets (ISMCTS):</strong> 既然 PIMC 的問題在硬把 imperfect info 轉成 perfect info，不如直接在 <strong>information set</strong> 上建樹搜索。一個 information set 就是從當前玩家角度所有不可區分的 state 的集合 <ul> <li>每次迭代開始時從 information set 中抽樣一個 determinization 來做 selection/expansion/simulation，但 backpropagation 在<strong>同一棵樹</strong>上進行，解決了 budget splitting</li> <li>變體: <strong>OOS</strong> (Online Outcome Sampling) 透過 counterfactual regret minimization 能收斂到 <strong>Nash Equilibrium</strong>，理論保證不可被剝削；<strong>IIMCTS</strong> 用遞迴方式防止 simulation 階段的 information leakage</li> </ul> </li> <li> <strong>Heavy Playouts:</strong> 隨機 playout 在 imperfect info 遊戲中品質特別差，因此用 domain knowledge 來引導 simulation 使其更接近真實遊戲 <ul> <li>關鍵發現: <mark>完全確定性的 expert playout 反而比帶有隨機性的簡化規則 playout 表現更差</mark>，因為失去了 MC 方法靠多樣性來探索的優勢。最佳做法是在 domain knowledge 和 randomness 之間取得平衡</li> </ul> </li> <li> <strong>Policy Update:</strong> 在搜索過程中動態更新 playout policy，使模擬品質隨時間提升 <ul> <li> <strong>RIDE</strong>: 比較 action pair 的相對優勢 \(D_{\text{RIDE} }(a,b) = E\{Q(s,a) - Q(s,b)\}\)，比絕對值更穩定</li> <li> <strong>Weighted Playouts</strong>: 權重按指數函數更新 \(P(a) \propto e^{w(a)}\)，好的 action 被指數級放大</li> <li> <strong>Value Networks for Cutoff</strong>: 用 NN 預測勝率來截斷 simulation，大幅減少長度把預算省給更多 iteration</li> </ul> </li> <li> <strong>Master Combinations:</strong> 最強的系統都是多種增強方法的組合。Vanilla MCTS 在 GVGP 只有 <strong>31%</strong> win-rate，組合 macro-actions + policy updates + knowledge base 後提升到 <strong>48.4%</strong> (Soemers et al. 2016)</li> </ol> <h2 id="mcts--machine-learning">MCTS + Machine Learning</h2> <h3 id="the-alphago-approach">The AlphaGo Approach</h3> <p>Two core ML models:</p> <ul> <li> <strong>Value function</strong> \(v(s)\): approximates game outcome from state \(s\)</li> <li> <strong>Policy function</strong> \(p(a\vert s)\): probability distribution over actions given state</li> </ul> <p><strong>AlphaGo’s modified UCT</strong>:</p> \[a = \arg\max_{a \in A(s)} \left[ Q(s,a) + \frac{P(s,a)}{1 + N(s,a)} \right]\] <p><strong>Leaf evaluation</strong>:</p> \[V(s_L) = (1-\lambda)\nu(s_L) + \lambda z_L\] <p>where \(\nu(s_L)\) is the value network output, \(z_L\) is the rollout result, and \(\lambda\) is a mixing parameter.</p> <p><img src="/assets/notes/mcts-review/Pasted-image-20260411201947.png" alt="Pasted image 20260411201947" loading="lazy" style="max-width: 100%; height: auto;"></p> <h3 id="mcts--neural-networks">MCTS + Neural Networks</h3> <table> <thead> <tr> <th>Approach</th> <th>Game/Domain</th> <th>Key Innovation</th> </tr> </thead> <tbody> <tr> <td><strong>AlphaGo/AlphaZero</strong></td> <td>Go, Chess, Shogi</td> <td>Policy + value deep CNNs with RL self-play</td> </tr> <tr> <td><strong>MoHex-3HNN</strong></td> <td>Hex</td> <td>Three-head NN (policy, state-value, action-value)</td> </tr> <tr> <td><strong>DeepEzo</strong></td> <td>Hex</td> <td>Policy trained from agents not using the policy</td> </tr> <tr> <td><strong>Spear</strong></td> <td>Task Scheduling</td> <td>MCTS simulation replaced by deep RL policy</td> </tr> <tr> <td><strong>MCTS as Trainer</strong></td> <td>Atari, Pommerman</td> <td>MCTS generates demonstrations for RL (UCTtoRegression, UCTtoClassification)</td> </tr> </tbody> </table> <h4 id="54-mcts--temporal-difference-learning">5.4 MCTS + Temporal Difference Learning</h4> <p>Replace UCT with a weighted average of classic UCT and TD estimates:</p> \[Q_{\text{TD-UCT} } = \gamma V + (1-\gamma)\left[Q + C\sqrt{\frac{\ln N(s)}{N(s,a)} }\right]\] <p>Three variants proposed (Vodopivec &amp; Šter 2014):</p> <table> <thead> <tr> <th>Variant</th> <th>Key Feature</th> <th>Performance</th> </tr> </thead> <tbody> <tr> <td><strong>TD-UCT Single Backup</strong></td> <td>Assumes future values converge to final playout value</td> <td>Good</td> </tr> <tr> <td><strong>TD-UCT Weighted Rewards</strong></td> <td>\(\gamma=1\): V fully replaces Q; keeps UCT exploration</td> <td>Moderate</td> </tr> <tr> <td><strong>TD-UCT Merged Bootstrapping</strong></td> <td>Regular TD bootstrapping; state value updated from next state</td> <td> <strong>Best</strong> (with AMAF, wins in all 4 test games)</td> </tr> </tbody> </table> <h3 id="mcts--evolutionary-methods-section-6">MCTS + Evolutionary Methods (Section 6)</h3> <table> <thead> <tr> <th>Category</th> <th>Method</th> <th>Key Idea</th> </tr> </thead> <tbody> <tr> <td><strong>Evolving Heuristics</strong></td> <td>Genetic Programming for evaluation functions</td> <td>Evolve board-evaluation functions offline, use in simulation phase</td> </tr> <tr> <td><strong>Evolving Policies</strong></td> <td>(1+1) ES, Knowledge-Based Fast-Evo MCTS</td> <td>Optimize weight vectors for tree/default policies; dynamic feature extraction</td> </tr> <tr> <td><strong>Evolving Tree Policy</strong></td> <td>GP-evolved UCB replacement</td> <td>Syntax tree encoding alternative selection formulas</td> </tr> <tr> <td><strong>RHEA</strong></td> <td>Rolling Horizon EA</td> <td>Evolve action sequences; competitor to MCTS; neither is universally better</td> </tr> <tr> <td><strong>Evolutionary MCTS</strong></td> <td>EMCTS (Baier &amp; Cowling 2018)</td> <td>Nodes contain action sequences; edges are mutation operators; no rollouts</td> </tr> </tbody> </table> <h3 id="applications-beyond-games-section-7">Applications Beyond Games (Section 7)</h3> <table> <thead> <tr> <th>Domain</th> <th>Key Approaches</th> <th>Notable Results</th> </tr> </thead> <tbody> <tr> <td><strong>Planning</strong></td> <td>ASAP-UCT (state-action pair abstraction), PROST (action pruning + reward locks), Hierarchical MCTS, Dec-MCTS for multi-robot</td> <td>ASAP-UCT significantly outperforms vanilla UCT; Dec-MCTS achieves 7% better score</td> </tr> <tr> <td><strong>Security</strong></td> <td>Mixed-UCT, Double Oracle UCT (O2UCT), AT-O2UCT</td> <td>Finding Stackelberg Equilibria in multi-step security games via MC simulations</td> </tr> <tr> <td><strong>Chemical Synthesis</strong></td> <td>3N-MCTS (3 neural networks guiding MCTS)</td> <td>Published in <em>Nature</em>; plans retrosynthesis using 17,134 reaction rules</td> </tr> <tr> <td><strong>Scheduling</strong></td> <td>ProUCT (heuristic solvers + UCT), Spear (AlphaGo-inspired)</td> <td>Spear reduces makespan by 20%; ProUCT handles risk-aware project scheduling</td> </tr> <tr> <td><strong>Vehicle Routing</strong></td> <td>Problem factorization (per-vehicle trees), macro-actions, UCT replacement</td> <td>Combines Clarke-Wright initial solutions with MCTS-based iterative improvement</td> </tr> </tbody> </table> <h2 id="parallelization-section-8">Parallelization (Section 8)</h2> <p>MCTS 的核心邏輯是迭代越多次統計量越可靠、決策越好。經典 MCTS 的四個階段是嚴格序列執行的，如果能平行化就能在相同時間內跑更多迭代。但 MCTS 的平行化跟一般的平行計算（如矩陣乘法）不同,,<mark>平行版本的結果不會跟序列版完全一樣</mark>。為了實現平行，必須犧牲一些東西（例如 UCT 的選擇公式不再是最優的），但只要整體能跑更多迭代，效能還是會提升。</p> <h3 id="三大基礎方法">三大基礎方法</h3> <p><strong>① Leaf Parallelization</strong> (Cazenave &amp; Jouandeau 2007)</p> <ul> <li>只有一棵樹。Selection 跟 Expansion 照常序列執行，但 Simulation 階段從同一個新展開的節點同時跑 \(K\) 個獨立 playout，結果加總/平均後 backpropagate</li> <li>優點: 實作最簡單，每個新節點的估值更準確（\(K\) 次 playout 的平均）</li> <li>缺點: <mark>樹的成長速度不會加快</mark>，每次迭代還是只展開一個節點</li> </ul> <p><strong>② Root Parallelization</strong> (Chaslot et al. 2008)</p> <ul> <li>開 \(K\) 個完全獨立的 process，每個 process 自己建一棵完整的 MCTS 樹。在做出真正決策之前（同步點），把所有樹的第一層統計量（Q 值和拜訪次數）進行加權聚合</li> <li>優點: 通訊開銷極小（只在同步點合併），聚合後統計量更有信心</li> <li>缺點: 不會產生更深的樹（各子樹獨立探索，可能有大量重複搜索）</li> </ul> <p><strong>③ Tree Parallelization</strong> (Cazenave &amp; Jouandeau 2008)</p> <ul> <li>只有一棵共享的樹。\(K\) 個 thread 同時在樹上執行完整的 MCTS 迭代（Selection → Expansion → Simulation → Backpropagation 全部由各 thread 獨立做）</li> <li> <strong>Virtual Loss（虛擬損失）</strong> 是關鍵 trick：當一個 thread 正在從某節點往下探索時，立刻給該節點記一個最差結果（假裝它輸了），降低其 UCT 分數，阻止其他 thread 也跑去同一個地方。等 playout 結束、真實結果回來後再修正</li> <li>效果: 迫使不同 thread 探索不同分支 → 樹成長更快、更寬</li> <li>缺點: 需要 locks/mutexes 做同步（展開節點和 backpropagation 是 critical section），有同步開銷</li> <li>⚠️ Graf &amp; Platzner (2015) 發現搭配動態策略更新（adaptive playout）會大幅降低平行效率，因為策略更新需要 global lock。16 threads 下 adaptive vs. static playouts 效能比只有 <strong>68%</strong> </li> </ul> <table> <thead> <tr> <th>方法</th> <th>樹的數量</th> <th>樹成長速度</th> <th>估值品質</th> <th>通訊成本</th> </tr> </thead> <tbody> <tr> <td><strong>Leaf</strong></td> <td>1 棵</td> <td>❌ 不加快</td> <td>✅ 更準確</td> <td>零</td> </tr> <tr> <td><strong>Root</strong></td> <td>\(K\) 棵</td> <td>❌ 不加快</td> <td>✅ 統計量更有信心</td> <td>極低</td> </tr> <tr> <td><strong>Tree</strong></td> <td>1 棵（共享）</td> <td>✅ 加快</td> <td>⚠️ Virtual Loss 可能偏移</td> <td>中-高（需 lock）</td> </tr> </tbody> </table> <h4 id="82-專用硬體加速">8.2 專用硬體加速</h4> <p><strong>GPU Parallelization</strong> (Barriga et al. 2014)</p> <ul> <li>在 GPU 上結合 Root + Leaf 平行化：GPU 建多棵獨立的樹（Root），每棵樹分配 32 的倍數個 GPU thread 做 Leaf 平行。在 Ataxx 遊戲中最佳配置達到 <strong>77.5% 勝率</strong> </li> <li>挑戰: 遊戲模擬器必須在 GPU 上實現（很多複雜遊戲做不到），且無法控制 thread scheduling 和 CPU/GPU 通訊</li> </ul> <p><strong>Intel Xeon Phi</strong> (Mirsoleimani et al. 2015)</p> <ul> <li>在 Xeon Phi（61 cores, 244 threads）上用 Tree Parallelization，把迭代拆成 chunks（grain size control）。比序列版快 <strong>5.6 倍</strong> </li> </ul> <p><strong>MPPA</strong> (Hufschmitt et al. 2015)</p> <ul> <li>在 256 核心、16 clusters 的 MPPA chip 上嘗試了 propnet 平行化和 playout 平行化，後者效果較好但同步開銷仍偏高</li> </ul> <h4 id="83-lock-free-parallelization無鎖平行化">8.3 Lock-free Parallelization（無鎖平行化）</h4> <blockquote> <p>Mirsoleimani et al. 2018</p> </blockquote> <p>MCTS 中有兩個 critical moment 需要 lock：展開新節點 (Expansion) 和更新統計量 (Backpropagation)。Lock 能防止 deadlock 和 race condition，但會造成效能瓶頸。</p> <p>解法是利用 C++ 的 memory model 和 <code class="language-plaintext highlighter-rouge">atomic</code> 關鍵字實現無鎖的平行 MCTS。<code class="language-plaintext highlighter-rouge">atomic</code> 操作保證對變數的讀寫是原子性的，不需要顯式加鎖。作者開源了函式庫，在 Hex 遊戲上驗證了 Tree 和 Root Parallelization 的有效性</p> <h4 id="84-roottree-hybrid根-樹混合平行化">8.4 Root–Tree Hybrid（根-樹混合平行化）</h4> <blockquote> <p>Świechowski &amp; Mańdziuk 2016 (本篇作者)</p> </blockquote> <p><mark>擴展性最強的方法</mark>，三層架構：</p> <ul> <li> <strong>Worker Nodes:</strong> 每個 worker 維護自己的 MCTS 樹，內部用 Leaf Parallelization</li> <li> <strong>Hub Nodes:</strong> 從下層 workers 匯集統計量（Root Parallelization 的概念）</li> <li> <strong>Master Node:</strong> 最頂層做最終聚合</li> </ul> <p>創新: <strong>Limited Root–Tree Parallelization</strong> 把搜索樹切成子樹分配給各 worker，但子樹之間不完全分離，保留一定的重疊（redundancy），因為 Root Parallelization 需要各 worker 對共同區域有估計才能有效聚合。在 9 個 GGP 遊戲中，混合方法效果超越單獨使用 Root 或 Tree</p> <h4 id="85-遊戲特定--information-set-平行化">8.5 遊戲特定 &amp; Information Set 平行化</h4> <ul> <li> <strong>Hex 解棋</strong> (Liang et al. 2015): Job-Level UCT 突破了 SPDFPN 演算法「thread 數量 ≤ CPU core 數量」的限制</li> <li> <strong>Go</strong> (Schaefers &amp; Platzner 2014): UCT-Treesplit 用平行 transposition table + MPI 通訊，在 HPC cluster 上實現極佳的可擴展性</li> <li> <strong>ISMCTS 平行化</strong> (Sephton et al. 2014): 把三種基礎方法套用到 ISMCTS，在 Lords of War 紙牌遊戲上驗證 <mark>Root Parallelization 搭配 ISMCTS 效果最好</mark>,,因為 ISMCTS 本身每次迭代都會重新抽樣 determinization，Root 的獨立性天然吻合此特性</li> </ul> <h2 id="limitations--thoughts">Limitations &amp; Thoughts</h2> <h3 id="limitations-of-the-survey">Limitations of the Survey</h3> <ul> <li> <strong>Scope restricted to multi-agent focus</strong>: Single-agent MCTS papers are included only if the authors judged the modifications to be generalizable to multi-agent settings , this introduces subjective selection bias.</li> <li> <strong>Limited quantitative comparison</strong>: Being a survey, it cannot provide head-to-head comparisons of all methods on the same benchmarks. The reader must consult individual papers for quantitative results.</li> <li> <strong>Post-2012 focus</strong>: Pre-2012 foundational works are summarized only briefly; readers must consult Browne et al. (2012) for the earlier literature.</li> <li> <strong>No code or reproducibility</strong>: The survey does not provide implementations or standardized benchmarks for comparing the reviewed methods.</li> </ul> <h3 id="relevance-to-drl-for-dfjsp-research">Relevance to DRL for DFJSP Research</h3> <ul> <li> <strong>MCTS as a complementary method to DRL</strong>: The paper extensively documents how MCTS and deep RL can be hybridized , MCTS provides structured exploration while RL provides learned heuristics. This is directly relevant to scheduling problems like DFJSP where pure DRL may struggle with combinatorial explosion.</li> <li> <strong>Scheduling section (7.4)</strong>: The Spear system (Hu et al. 2019) demonstrates MCTS + deep RL for dependency-aware task scheduling, achieving 20% makespan reduction. This architecture , replacing MCTS simulation with a trained RL policy , could be adapted for DFJSP.</li> <li> <strong>Action reduction techniques</strong> (Section 3.1) are highly relevant for DFJSP, where the action space (job-machine assignments across operations) grows combinatorially. Options/macro-actions, progressive widening, and informed priors could tame this complexity.</li> <li> <strong>MCTS as a trainer for RL</strong> (Section 5.3.2): Using MCTS demonstrations to train DRL policies (as in Kartal et al. 2019) could provide a “safer” exploration strategy for DFJSP, where bad scheduling decisions are costly.</li> <li> <strong>Dynamic environments</strong>: The survey highlights MCTS modifications for dynamic/real-time settings (VSP-MCTS, RHEA), which align with the <em>dynamic</em> aspect of DFJSP where jobs arrive over time and machines may become unavailable.</li> <li> <strong>Problem factorization</strong> (Section 7.5): The per-vehicle tree approach in VRP is analogous to per-machine or per-job trees in DFJSP, potentially enabling more tractable search.</li> <li> <strong>Open question</strong>: Can MCTS be used as an <strong>expert demonstrator</strong> during DRL training for DFJSP, providing high-quality trajectories that bootstrap the RL agent’s policy? The survey suggests this is a promising and underexplored direction for scheduling domains.</li> </ul> <h2 id="related-notes">Related Notes</h2> <ul> <li>Monte Carlo Tree Search</li> </ul> </article> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Chia-Fan Chu. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/assets/al_math/js/mathjax-setup.js"></script> <script defer src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6" crossorigin="anonymous"></script> <script src="/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/assets/al_img_tools/js/zoom.js"></script> <script defer src="/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-about",
+    title: "about",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/";
+    },
+  },{id: "nav-cv",
+          title: "CV",
+          description: "Education, experience, publications, and skills.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/cv/";
+          },
+        },{id: "nav-shared-notes",
+          title: "shared notes",
+          description: "Notes I keep while reading papers and working through courses. Shared as-is; most are living documents, so expect a few rough edges.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/notes/";
+          },
+        },{id: "notes-mastering-the-game-of-go-without-human-knowledge",
+          title: 'Mastering the Game of Go without Human Knowledge',
+          description: "PUCT math and why MCTS acts as a policy improvement operator.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/alphago-zero/";
+            },},{id: "notes-curriculum-learning-for-reinforcement-learning-domains-a-framework-and-survey",
+          title: 'Curriculum Learning for Reinforcement Learning Domains: A Framework and Survey',
+          description: "Section-by-section summary of the curriculum learning framework and its design dimensions.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-rl-survey/";
+            },},{id: "notes-a-survey-on-curriculum-learning",
+          title: 'A Survey on Curriculum Learning',
+          description: "Predefined vs automatic curricula and self-paced learning, summarized.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-survey/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-dual-attention-network-based-reinforcement-learning",
+          title: 'Flexible Job Shop Scheduling via Dual Attention Network-Based Reinforcement Learning',
+          description: "Dual-attention method with the math spelled out, plus a note on a missing ablation.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/daniel-dual-attention/";
+            },},{id: "notes-deep-reinforcement-learning-for-dynamic-scheduling-of-a-flexible-job-shop",
+          title: 'Deep Reinforcement Learning for Dynamic Scheduling of a Flexible Job Shop',
+          description: "MDP breakdown plus my comparison tables against related dynamic-scheduling designs.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-dynamic-fjs/";
+            },},{id: "notes-challenges-and-opportunities-in-deep-reinforcement-learning-with-graph-neural-networks",
+          title: 'Challenges and Opportunities in Deep Reinforcement Learning with Graph Neural Networks',
+          description: "Review of how DRL and GNNs combine, and where the open challenges are.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-gnn-review/";
+            },},{id: "notes-deep-rl-for-machine-scheduling-methodology-state-of-the-art-and-future-directions",
+          title: 'Deep RL for Machine Scheduling: Methodology, State of the Art, and Future Directions...',
+          description: "Taxonomy of state, action, and reward designs across the machine-scheduling literature.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-machine-scheduling-survey/";
+            },},{id: "notes-feudal-networks-for-hierarchical-reinforcement-learning",
+          title: 'FeUdal Networks for Hierarchical Reinforcement Learning',
+          description: "Manager/Worker architecture, transition policy gradient, and ablations explained.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/feudal-networks/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-graph-neural-network-and-deep-reinforcement-learning",
+          title: 'Flexible Job-Shop Scheduling via Graph Neural Network and Deep Reinforcement Learning',
+          description: "Detailed method and experiment summary of a key heterogeneous-graph baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-gnn-drl/";
+            },},{id: "notes-the-flexible-job-shop-scheduling-problem-a-review",
+          title: 'The Flexible Job Shop Scheduling Problem: A Review',
+          description: "Schedule classes, problem variants, and solution families, connected back to RL.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-review/";
+            },},{id: "notes-heterogeneous-graph-transformer",
+          title: 'Heterogeneous Graph Transformer',
+          description: "Mutual attention, message passing, and relative temporal encoding, with a worked example.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/heterogeneous-graph-transformer/";
+            },},{id: "notes-knowledge-enabled-multi-agent-drl-for-batch-machine-scheduling-in-semiconductor-fabrication",
+          title: 'Knowledge-enabled Multi-agent DRL for Batch Machine Scheduling in Semiconductor Fabrication',
+          description: "IRL plus MADRL pipeline, reward design, and my critique of it.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/knowledge-madrl-semiconductor/";
+            },},{id: "notes-list-scheduling-and-beam-search-methods-for-the-fjsp-with-sequencing-flexibility",
+          title: 'List Scheduling and Beam Search Methods for the FJSP with Sequencing Flexibility',
+          description: "Problem, method, and results of a strong non-learning FJSP baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/list-scheduling-beam-search-fjsp/";
+            },},{id: "notes-monte-carlo-tree-search-a-review-of-recent-modifications-and-applications",
+          title: 'Monte Carlo Tree Search: A Review of Recent Modifications and Applications',
+          description: "Survey walkthrough of the MCTS phases and variants, with my notes on relevance to scheduling.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mcts-review/";
+            },},{id: "notes-ch-0-introduction",
+          title: 'Ch 0 Introduction',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch0-introduction/";
+            },},{id: "notes-ch-1-traditional-machine-learning-on-graphs",
+          title: 'Ch 1 Traditional Machine Learning on Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch1-traditional-ml-on-graphs/";
+            },},{id: "notes-ch-10-11-15-knowledge-graph",
+          title: 'Ch 10, 11, 15 Knowledge Graph',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch10-11-15-knowledge-graph/";
+            },},{id: "notes-ch-12-gnns-for-recommender-systems",
+          title: 'Ch 12 GNNs for Recommender Systems',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch12-gnns-for-recommender-systems/";
+            },},{id: "notes-ch-14-advanced-topics-in-graph-neural-networks",
+          title: 'Ch 14 Advanced Topics in Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch14-advanced-topics/";
+            },},{id: "notes-ch-16-deep-generative-models-for-graphs",
+          title: 'Ch 16 Deep Generative Models for Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch16-deep-generative-models/";
+            },},{id: "notes-ch-17-geometric-graph-learning",
+          title: 'Ch 17 Geometric Graph Learning',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch17-geometric-graph-learning/";
+            },},{id: "notes-ch-19-label-propagation",
+          title: 'Ch 19 Label Propagation',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch19-label-propagation/";
+            },},{id: "notes-ch-2-node-embedding",
+          title: 'Ch 2 Node Embedding',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch2-node-embedding/";
+            },},{id: "notes-ch-20-scaling-up-gnns",
+          title: 'Ch 20 Scaling Up GNNs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch20-scaling-up-gnns/";
+            },},{id: "notes-ch-21-trustworthy-graph-ai",
+          title: 'Ch 21 Trustworthy Graph AI',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch21-trustworthy-graph-ai/";
+            },},{id: "notes-ch-3-graph-neural-networks",
+          title: 'Ch 3 Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch3-graph-neural-networks/";
+            },},{id: "notes-ch-4-a-general-perspective-on-graph-neural-networks",
+          title: 'Ch 4 A General Perspective on Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch4-general-perspective-on-gnn/";
+            },},{id: "notes-ch-5-gnn-augmentation-and-training",
+          title: 'Ch 5 GNN Augmentation and Training',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch5-gnn-augmentation-and-training/";
+            },},{id: "notes-ch-6-theory-of-graph-neural-networks",
+          title: 'Ch 6 Theory of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch6-theory-of-gnns/";
+            },},{id: "notes-ch-7-limits-of-graph-neural-networks",
+          title: 'Ch 7 Limits of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch7-limits-of-gnns/";
+            },},{id: "notes-ch-8-graph-transformers",
+          title: 'Ch 8 Graph Transformers',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch8-graph-transformers/";
+            },},{id: "notes-ch-9-machine-learning-with-heterogeneous-graphs",
+          title: 'Ch 9 Machine Learning with Heterogeneous Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch9-heterogeneous-graphs/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map plus my conclusions on how to design and train a GNN.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-overview/";
+            },},{id: "notes-clustering-method",
+          title: 'Clustering Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-clustering-method/";
+            },},{id: "notes-factor-analysis",
+          title: 'Factor Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-factor-analysis/";
+            },},{id: "notes-prerequisite",
+          title: 'Prerequisite',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-prerequisite/";
+            },},{id: "notes-principal-component-analysis",
+          title: 'Principal Component Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-principal-component-analysis/";
+            },},{id: "notes-ch-14-general-purpose-procedures-for-deterministic-scheduling",
+          title: 'Ch 14 General Purpose Procedures for Deterministic Scheduling',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch14-general-purpose-procedures/";
+            },},{id: "notes-ch-15-more-advance-general-purpose-procedures",
+          title: 'Ch 15 More Advance General Purpose Procedures',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch15-more-advance-general-purpose-procedures/";
+            },},{id: "notes-ch-16-modeling-and-solving-scheduling-problems-in-practice",
+          title: 'Ch 16 Modeling and Solving Scheduling Problems in Practice',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch16-modeling-and-solving-scheduling-problems/";
+            },},{id: "notes-ch-2-deterministic-models-preliminaries",
+          title: 'Ch 2 Deterministic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch2-deterministic-models-preliminaries/";
+            },},{id: "notes-ch-3-single-machine-method",
+          title: 'Ch 3 Single Machine Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch3-single-machine-method/";
+            },},{id: "notes-ch-4-advance-single-machine",
+          title: 'Ch 4 Advance Single Machine',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch4-advance-single-machine/";
+            },},{id: "notes-ch-5-parallel-machine-model",
+          title: 'Ch 5 Parallel Machine Model',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch5-parallel-machine-model/";
+            },},{id: "notes-ch-6-flow-shop",
+          title: 'Ch 6 Flow Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch6-flow-shop/";
+            },},{id: "notes-ch-7-job-shop",
+          title: 'Ch 7 Job Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch7-job-shop/";
+            },},{id: "notes-ch-8-open-shop",
+          title: 'Ch 8 Open Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch8-open-shop/";
+            },},{id: "notes-ch-9-stochastic-models-preliminaries",
+          title: 'Ch 9 Stochastic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch9-stochastic-models-preliminaries/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map: which chapters are covered and how they fit together.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-overview/";
+            },},{id: "notes-real-time-scheduling-for-dynamic-partial-no-wait-multiobjective-flexible-job-shop-by-drl",
+          title: 'Real-Time Scheduling for Dynamic Partial-No-Wait Multiobjective Flexible Job Shop by DRL',
+          description: "Hierarchical multi-agent MDP with rule tables and Pareto metrics.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/realtime-partial-no-wait-fjs/";
+            },},{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%6F%6B%75%6D%6F%63%68%75%35%35@%67%6D%61%69%6C.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-github',
+        title: 'GitHub',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://github.com/okumochu", "_blank");
+        },
+      },{
+        id: 'social-linkedin',
+        title: 'LinkedIn',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.linkedin.com/in/chia-fan-chu", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=BfaixEUAAAAJ", "_blank");
+        },
+      },];
+
+</script> <script src="/assets/al_search/js/shortcut-key.js"></script> </body> </html>

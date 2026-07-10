@@ -1,0 +1,317 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Heterogeneous Graph Transformer | Chia-Fan Chu </title> <meta name="author" content="Chia-Fan Chu"> <meta name="description" content="Mutual attention, message passing, and relative temporal encoding, with a worked example."> <meta name="keywords" content="chia-fan chu, reinforcement learning, scheduling, operations research, national taiwan university"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;%E2%9A%9B%EF%B8%8F&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/assets/css/main.css?v=f0b101217084a90093badfe99ff9a7d1"> <link rel="canonical" href="https://okumochu.github.io/notes/heterogeneous-graph-transformer/"> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/"> <span class="font-weight-bold">Chia-Fan</span> Chu </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/cv/">CV </a> </li> <li class="nav-item active"> <a class="nav-link" href="/notes/">shared notes <span class="sr-only">(current)</span> </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title">Heterogeneous Graph Transformer</h1> <p class="post-description">Mutual attention, message passing, and relative temporal encoding, with a worked example.</p> </header> <article> <blockquote> <p>Hu, Ziniu, et al. “Heterogeneous graph transformer.” Proceedings of the web conference 2020. 2020.</p> </blockquote> <h2 id="motivation">Motivation</h2> <ul> <li>很簡單就是之前所有的圖形都是設計成 homogeneous，但是以下都會不相同 <ul> <li>node type (different feature)</li> <li> <p>edge type (different semantic meaning, including directions)</p> <p><img src="/assets/notes/heterogeneous-graph-transformer/image.png" alt="image" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> </ul> </li> <li>剩下就是因為過去的研究 <ol> <li> <p>為不同類型的節點或邊共享完全相同的參數 ( feature 轉換)，要麼為每種類型單獨設定權重，未能有效捕捉異質圖的複雜屬性</p> <blockquote> <p><strong>Note</strong> 傳統 GNN 在處理異質圖時，最大的困難在於如何處理不同類型節點之間的信息傳遞。如果使用相同的權重矩陣，會混淆不同類型的語意；如果為每種關係都設定一個獨立的矩陣，又會導致參數過多且難以泛化，特別是對於那些出現次數較少的關係</p> </blockquote> </li> <li> <p>沒有考慮動態性 (都是 static snapshot)，無法有效 handle dynamics structure dependency，本篇文章提出 temporal encoding technique</p> <blockquote> <p><strong>Note</strong> 想像一下WWW這個會議節點。在我們的資料中，WWW@1994 意味著我們考慮的是第一屆 WWW，它更關注網路協議和 Web 基礎設施，而 WWW@2020 則意味著即將到來的 WWW，其研究主題擴展到社會分析、普適計算等領域。如果我們忽略時間，將這兩個不同時代的 WWW 視為同一個節點，就會丟失大量寶貴的上下文資訊</p> </blockquote> </li> <li> <p>擴展性不足 (在數億 node 和 edge 規模下)，以及在大規模異質圖上的訓練 HG Sampling</p> </li> </ol> </li> </ul> <h2 id="methodology">Methodology</h2> <ul> <li> <p>General GNN Structure: 會透過一個 Extraction 把與自己相鄰 node 的資訊抽取出來，然後所有相鄰的 node 都抽取出來後，接下來再跟自己做 Aggregation 成為自己 下一個 layer 的 embedding</p> \[H^l[t] \leftarrow \underset{\forall s \in N(t), \forall e \in E(s,t)}{\mathbf{Aggregate} } \left( \mathbf{Extract}(H^{l-1}[s]; H^{l-1}[t], e) \right)\] </li> </ul> <blockquote> <p>The goal of HGT is to aggregate information from source nodes to get a contextualized representation for target node \(t\). Such process can be decomposed into three components: <em>Heterogeneous Mutual Attention, Heterogeneous Message Passing and Target-Specific Aggregation.</em></p> </blockquote> <p><img src="/assets/notes/heterogeneous-graph-transformer/image-1.png" alt="image 1" loading="lazy" style="max-width: 100%; height: auto;"></p> <h3 id="heterogeneous-mutual-attention">Heterogeneous Mutual Attention</h3> <ul> <li>這個部分就是 attention 裡面 query, key 概念的呈現，但是這邊要注意的是每種 source 或是 target 都有自己專屬投影到 query 或 key 的線性矩陣 (保持語義一致)</li> <li>中間的是一個根據不同邊關係的矩陣，這是用來捕捉不同邊關係的關係</li> <li>最後最右邊有一個 trainable \(\mu\)，這個是用來衡量這三元關係的重要程度 (source, edge, target)</li> <li>以下就是每個 attention head 都是這樣計算，然後最後就是把所有 head concat 在一起最後通過 softmax 標準化 (基本 attention 操作)</li> </ul> \[\text{ATT-head}^i(s, e, t) = \left( K^i(s) W_{\phi(e)}^{\text{ATT} } Q^i(t)^T \right) \cdot \frac{\mu(\tau(s), \phi(e), \tau(t))}{\sqrt{d} }\] <h3 id="heterogeneous-message-passing--aggregation">Heterogeneous Message Passing &amp; Aggregation</h3> <ul> <li>這個部分就是 attention 裡面 value 的展現 (這邊叫做 message)， 記算起來比跟剛剛類似，先進行投影後再呈上一個補捉邊關係的矩陣 \(W_{\phi(e)}\) (很明顯的上標 MSG, ATT 是不同的語義上的轉換)</li> </ul> \[\text{MSG-head}^i(s, e, t) = \text{M-Linear}^i_{\tau(s)}\left(H^{(l-1)}[s]\right) W_{\phi(e)}^{\text{MSG} }\] <h3 id="target-specific-aggregation">Target-Specific Aggregation</h3> <ul> <li> <p>Aggregate 的動作，在計算出每個鄰居的注意力和訊息後，我們需要將它們 Aggregate 到目標節點上 。我們直接使用注意力向量作為權重，對相應的訊息向量進行加權平均，得到更新後的向量 (下面這個式子就是用 attention 加權平均)</p> \[\tilde{H}^{(l)}[t] = \sum_{\forall s \in N(t)} \left( \text{Attention}_{\text{HGT} }(s, e, t) \cdot \text{Message}_{\text{HGT} }(s, e, t) \right)\] </li> <li> <p>最後需要將這個聚合後的向量映射回目標節點 (先過 activation function 後線性轉換一下)，再加上自己是一層的 embedding 就全部結束了</p> \[H^{(l)}[t] = \text{A-Linear}_{\tau(t)}\left(\sigma\left(\tilde{H}^{(l)}[t]\right)\right) + H^{(l-1)}[t]\] </li> </ul> <blockquote> <p><strong>Note</strong> <strong>參數共享發生在節點類型的層級，而模型的特異性則保留在邊類型的層級</strong></p> <p>讓我們透過一個具體的例子來拆解這個過程。假設我們有兩個非常相似的元關係：</p> <ul> <li> <strong>關係 A</strong>: <code class="language-plaintext highlighter-rouge">&lt;作者 (Author), 是第一作者 (is_first_author_of), 論文 (Paper)&gt;</code> </li> <li> <strong>關係 B</strong>: <code class="language-plaintext highlighter-rouge">&lt;作者 (Author), 是共同作者 (is_co_author_of), 論文 (Paper)&gt;</code> </li> </ul> <p>如果是一個沒有參數共享的 naïve 模型，它會為關係 A 和關係 B 分別學習兩套完全獨立的參數。這不僅參數數量驚人，而且模型無法將從關係 A 學到的關於作者和論文的知識應用到關係 B</p> </blockquote> <h3 id="relative-temporal-encoding-rte">Relative Temporal Encoding (RTE)</h3> <ul> <li>主要是為了把相同 node，但是不同的時間發生的區別出來，藉由讓模型知道誰相對來說比較早比較晚就可以區別了 <ul> <li>對於一組 source, target，首先現計算時間差距 \(\Delta T(t, s) = T(t) - T(s)\)</li> <li> <p>接下來輸入到 sin 或是 cos 函數裡面來 encoding</p> <blockquote> <p><strong>Note</strong> 這個編碼器必須滿足兩個條件：</p> <ol> <li> <strong>獨特性與可區分性:</strong> 不同的時間差 <code class="language-plaintext highlighter-rouge">ΔT</code> 應該對應到不同的向量 <ol> <li>如果只有 sin，sin(0) = sin(π) = 0</li> </ol> </li> <li> <strong>平滑性與連續性:</strong> 相似的時間差 <code class="language-plaintext highlighter-rouge">ΔT</code> 應該對應到相似的向量</li> </ol> <p>這樣才能夠增加 generalization 能力，因為模型可能沒有看過 \(\Delta T = 1000\) 的狀況，但是<strong>一個好的 encoding 就能使模型內插和外推</strong></p> </blockquote> <ul> <li> <p>所以我們選擇的是兩個 sin 和 cos，並且要定義 一個向量</p> \[\begin{align*} \text{Base}(\Delta T(t,s), 2i) &amp;= \sin\left(\Delta T_{t,s} / 10000^{\frac{2i}{d} }\right) \\ \text{Base}(\Delta T(t,s), 2i + 1) &amp;= \cos\left(\Delta T_{t,s} / 10000^{\frac{2i+1}{d} }\right) \\ \text{RTE}(\Delta T(t,s)) &amp;= \text{T-Linear}\left(\text{Base}(\Delta T_{t,s})\right) \end{align*}\] <ul> <li>所以會先決定的是 d，決定後就會有 d/2 個組不同的 sin/cos pair，組成 d 維度的編碼，每一對的頻率是由分母 \(P_i =10000^{\frac{2i}{d} }\) 決定。<strong>d 越大維度越大，整個頻率顆粒度就越細</strong> </li> <li> <p>舉例來說如果 d = 6，就會有 <code class="language-plaintext highlighter-rouge">[sin(ΔT/P₀), cos(ΔT/P₀), sin(ΔT/P₁), cos(ΔT/P₁), sin(ΔT/P₂), cos(ΔT/P₂)]</code></p> <table> <thead> <tr> <th>ΔT</th> <th><code class="language-plaintext highlighter-rouge">sin(ΔT/1)</code></th> <th><code class="language-plaintext highlighter-rouge">cos(ΔT/1)</code></th> <th><code class="language-plaintext highlighter-rouge">sin(ΔT/21.5)</code></th> <th><code class="language-plaintext highlighter-rouge">cos(ΔT/21.5)</code></th> <th><code class="language-plaintext highlighter-rouge">sin(ΔT/464)</code></th> <th><code class="language-plaintext highlighter-rouge">cos(ΔT/464)</code></th> </tr> </thead> <tbody> <tr> <td><strong>0</strong></td> <td>0.00</td> <td>1.00</td> <td>0.00</td> <td>1.00</td> <td>0.00</td> <td>1.00</td> </tr> <tr> <td><strong>1</strong></td> <td>0.84</td> <td>0.54</td> <td>0.046</td> <td>0.99</td> <td>0.002</td> <td>1.00</td> </tr> <tr> <td><strong>2</strong></td> <td>0.91</td> <td>-0.42</td> <td>0.093</td> <td>0.99</td> <td>0.004</td> <td>1.00</td> </tr> <tr> <td><strong>10</strong></td> <td>-0.54</td> <td>-0.84</td> <td>0.45</td> <td>0.90</td> <td>0.021</td> <td>0.99</td> </tr> <tr> <td><strong>500</strong></td> <td>-0.99</td> <td>-0.12</td> <td>-0.59</td> <td>-0.81</td> <td>0.88</td> <td>0.47</td> </tr> </tbody> </table> </li> </ul> </li> </ul> </li> <li> <p>最後通過線性轉換加到 source node的原始表示上</p> \[\hat{H}^{(l-1)}[s] = H^{(l-1)}[s] + \text{RTE}\left(\Delta T(t, s)\right)\] <p><img src="/assets/notes/heterogeneous-graph-transformer/image-2.png" alt="image 2" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> </ul> </li> </ul> <h3 id="training-technique">TRAINING Technique</h3> <p><img src="/assets/notes/heterogeneous-graph-transformer/image-3.png" alt="image 3" loading="lazy" style="max-width: 100%; height: auto;"></p> <h3 id="hgsampling">HGSampling</h3> <ul> <li>傳統的圖神經網路 (GNN) 訓練方法是全批次 (full-batch) 的，需要一次性計算所有 node representation，這在大規模圖中是不可行的 。雖然現有的採樣方法 (如 GraphSage、FastGCN) 可以解決這個問題，但它們在異質圖上會產生節點類型極度不平衡的子圖，因為不同類型節點的數量和度分佈 (degree distribution) 可能差異巨大</li> <li>為了解決此問題，提出了 <strong>HGSampling (Heterogeneous Mini-Batch Graph Sampling)</strong> 演算法 <ul> <li>HGSampling 主要的目的就是不要一次訓練整個網路，而是透過合理的 sample nodes，然後用那些 nodes (sub-graph) 來進行訓練。並且這些 sample 出來的 node 有以下特性 <ul> <li> <strong>維持類型平衡:</strong> 確保採樣出的子圖中，各種類型的節點和邊的數量大致相當</li> <li> <strong>保持子圖密集:</strong> 盡可能使採樣的子圖保持緊密，以減少資訊損失和採樣變異</li> </ul> </li> </ul> </li> </ul> <blockquote> <p><strong>Note</strong> mini-batch 就是只每次 training iteration 的時候就<strong>只會挑選一小部份的 node 來更新和預測 (下游任務)</strong>，因此每次的 iteration 都要重新做一次 HGSampling 為這個新的 mini-batch 生成專屬於它的 <code class="language-plaintext highlighter-rouge">OS</code> 和 <code class="language-plaintext highlighter-rouge">Â</code> (sub-graph 來訓練)</p> </blockquote> <ul> <li>下面就是這個演算法 <ol> <li>先給定一個進 Output Node Set (<code class="language-plaintext highlighter-rouge">OS</code>)，然後把 Sampling Node Set (<code class="language-plaintext highlighter-rouge">NS</code>) ← <code class="language-plaintext highlighter-rouge">OS</code>。最後不同節點類型 \(\tau\) 都會有一個 budget (\(B[\tau]\))，並且接下來都是從這個 <code class="language-plaintext highlighter-rouge">NS</code> 來操作</li> <li> <strong>Initialize Budget:</strong> 遍歷 <code class="language-plaintext highlighter-rouge">NS</code> 中的每個節點 \(t\)，將其所有鄰居節點 (也就是所有可能的 source) 加入對應類型的預算 \(B\) 中 <ol> <li>在加入時，會計算每個 source 的關聯重要度 (後續 sample 的時候會用到) <ol> <li>可以想像每個 target \(t\) 都有自己的投票，當這個 target \(t\) 有連接到很多人，這個票就會被分散，所以每個 source 拿到的票數就會比較少</li> <li>另外，如果這個 source 被很多 target 連接到，這代表這個 source 很重要。整體上來說票數也會變高。</li> </ol> </li> </ol> </li> <li> <strong>Iterative Sampling 重複 L 層 (每次都會擴增 OS)</strong> <ol> <li>對於每個類型的 source <ol> <li> <strong>進行抽樣:</strong> 根據 budget 調整抽取的機率，越重要的機率越高，抽取 \(n\) 個點</li> <li>把這些抽到的點加入輸出的集合 <code class="language-plaintext highlighter-rouge">OS</code> 然後把他們的鄰居 (source node) 都加到 Budget 中 (一樣加入的時候會根據連接的數量給一個值，用來表示關聯性)</li> <li>最後就是把這些抽到的點移出 budget (本來這些點就是從某個 target 放進去的 budget 的)</li> </ol> </li> </ol> </li> <li>最後就可以用 <code class="language-plaintext highlighter-rouge">OS</code> 和 <code class="language-plaintext highlighter-rouge">Â</code> ，進行訓練</li> </ol> </li> </ul> <p><img src="/assets/notes/heterogeneous-graph-transformer/image-4.png" alt="image 4" loading="lazy" style="max-width: 100%; height: auto;"></p> <p><img src="/assets/notes/heterogeneous-graph-transformer/image-5.png" alt="image 5" loading="lazy" style="max-width: 100%; height: auto;"></p> <h3 id="inductive-timestamp-assignment">Inductive Timestamp Assignment</h3> <ul> <li>Inductive Timestamp Assignment 的做法就是讓沒有 timestamp 的 plain nodes 繼承 event node 的 timestamp <ul> <li>Plain Nodes: 這類節點沒有內建的、固定的時間戳 。它們的屬性或扮演的角色會隨著時間演進 e.g. 一個會議 node 可以在不同的時間點舉辦，並且其研究的主題就可以隨之變化</li> <li>Event Nodes: <strong>**這類節點本身就帶有明確且固定的時間屬性 。最典型的例子就是 **Paper</strong>，一篇論文有其確定的發表日期，這個時間戳是它內在的屬性</li> </ul> </li> <li>主要目的為 <ol> <li>之前講到的 RTE 會需要 source node \(T\) 和 target node \(T\)，這樣才能夠被計算 <ol> <li>舉例來說，在處理一篇2019年發表的論文時，與它相連的 WWW 節點就被臨時賦予 2019年這個時間戳。這使得模型能夠理解，我們正在討論的是 2019年的WWW，而不是 1994年的WWW</li> </ol> </li> <li>為了分清楚不同時間下但是相同類型的 node。不分配時間戳，模型會為 WWW 這個節點學到一個涵蓋了它從1994年到2020年所有特性的、非常模糊且平均的 embedding</li> </ol> </li> </ul> <p><img src="/assets/notes/heterogeneous-graph-transformer/image-6.png" alt="image 6" loading="lazy" style="max-width: 100%; height: auto;"></p> <h2 id="experiment">Experiment</h2> <ul> <li> <p>Summarize by Gemini</p> <p>### 第五章：評估 (EVALUATION)</p> <p>本章節的結構如下：</p> <ol> <li> <strong>5.1 Web-Scale Datasets</strong>：介紹實驗所使用的資料集</li> <li> <strong>5.2 Experimental Setup</strong>：說明實驗任務、評估指標、比較基準模型及實作細節</li> <li> <strong>5.3 Experimental Results</strong>：呈現並分析實驗結果</li> <li> <strong>5.4 Case Study</strong>：透過案例探討模型捕捉圖譜動態性的能力</li> <li> <strong>5.5 Visualize Meta Relation Attention</strong>：視覺化分析模型自動學習元路徑的能力</li> </ol> </li> </ul> <hr> <p>### 5.1 Web-Scale Datasets (網路規模資料集)</p> <p>為了全面評估模型在真實世界中的應用，作者使用了</p> <p><strong>開放學術圖譜 (Open Academic Graph, OAG)</strong> 作為實驗基礎</p> <ul> <li> <strong>OAG 主資料集</strong>： <ul> <li> <strong>規模</strong>：這是目前公開可用的最大異質學術資料集，包含超過 1.78 億個節點和 22.36 億條邊</li> <li> <strong>時間跨度</strong>：資料涵蓋了從 1900 年到 2019 年的學術文獻</li> <li> <strong>節點類型</strong>：共有五種節點：’Paper’ (論文), ‘Author’ (作者), ‘Field’ (領域), ‘Venue’ (場所，如會議/期刊), 和 ‘Institute’ (機構)</li> <li> <strong>邊類型細化</strong>：為了捕捉更豐富的語意，作者對邊關係進行了細化： <ul> <li>‘Paper-Field’ 關係根據領域的層級（L0 至 L5）進行區分</li> <li>作者的順序（第一作者、最後一作者、其他）被區分</li> <li>場所的類型（期刊、會議、預印本）也被區分</li> <li>除了對稱的自環邊，所有其他關係類型都存在一個反向關係<code class="language-plaintext highlighter-rouge">φ⁻¹</code> </li> </ul> </li> </ul> </li> <li> <strong>領域特定子圖</strong>： <ul> <li>為了測試模型的泛化能力，作者還從 OAG 中構建了兩個特定領域的子圖：<strong>Computer Science (CS)</strong> 和 <strong>Medicine (Med)</strong> </li> <li>這兩個子圖的規模依然龐大，包含數千萬節點和數億條邊，比現有研究中常用的 DBLP 或 Pubmed 等資料集大至少一個數量級</li> </ul> </li> </ul> <hr> <p>### 5.2 Experimental Setup (實驗設定)</p> <ul> <li>四大下游任務： <ol> <li> <strong>Paper-Field (L1) Prediction</strong>：預測論文屬於哪個 L1 級別的領域（節點分類任務）</li> <li> <strong>Paper-Field (L2) Prediction</strong>：預測論文屬於哪個 L2 級別的領域（節點分類任務）</li> <li> <strong>Paper-Venue Prediction</strong>：預測論文發表在哪個場所（節點分類任務）</li> <li> <strong>Author Disambiguation</strong>：作者名稱消歧，判斷同名作者發表的論文是否屬於同一個人（連結預測任務）模型首先透過 GNN 得到論文和作者的表示，然後使用一個神經張量網路 (Neural Tensor Network) 來預測它們之間存在連結的機率</li> </ol> </li> <li> <strong>資料劃分</strong>：採用基於時間的劃分方式，確保評估的現實性 <ul> <li> <strong>訓練集</strong>：2015 年以前發表的論文</li> <li> <strong>驗證集</strong>：2015 年至 2016 年發表的論文</li> <li> <strong>測試集</strong>：2016 年至 2019 年發表的論文</li> </ul> </li> <li> <strong>評估指標</strong>：使用兩個廣泛應用於排序任務的指標：<strong>NDCG</strong> (Normalized Discounted Cumulative Gain) 和 <strong>MRR</strong> (Mean Reciprocal Rank) 。所有實驗均重複 5 次並報告平均值與標準差</li> <li> <strong>基準模型 (Baselines)</strong> ： <ul> <li> <strong>同質圖 GNN</strong>： <ul> <li> <strong>GCN</strong>：簡單地對鄰居嵌入進行平均</li> <li> <strong>GAT</strong>：對鄰居使用多頭注意力機制</li> </ul> </li> <li> <strong>異質圖 GNN</strong>： <ul> <li> <strong>RGCN</strong>：為每種關係三元組（source type, edge type, target type）維護一個獨立的權重矩陣</li> <li> <strong>HetGNN</strong>：為不同類型的節點採用不同的 Bi-LSTM 來聚合鄰居資訊</li> <li> <strong>HAN</strong>：設計了基於元路徑的層級式注意力網路</li> </ul> </li> </ul> </li> <li> <strong>消融研究 (Ablation Study)</strong> <ul> <li>為了驗證 HGT 兩個核心組件的有效性：<strong>異質權重參數化 (Heter)</strong> 和 <strong>相對時間編碼 (RTE)</strong>，作者設計了 HGT 的不同變體進行比較</li> </ul> </li> <li> <strong>輸入特徵 (Input Features)</strong>： <ul> <li>由於 HGT 不要求所有節點特徵屬於同一分佈，作者為不同類型的節點設計了最合適的特徵</li> <li> <strong>論文</strong>：使用預訓練的 XLNet 處理論文標題，並透過注意力加權平均得到標題表示</li> <li> <strong>作者</strong>：其發表論文表示的平均值</li> <li> <strong>領域、場所、機構</strong>：使用 metapath2vec 模型預訓練得到它們的嵌入</li> <li> <strong>公平比較</strong>：為所有模型（包括基準模型）增加了一個<strong>適配層 (adaptation layer)</strong>，透過線性投影將不同類型的輸入特徵映射到同一個分佈空間</li> </ul> </li> </ul> <hr> <p>### 5.3 Experimental Results (實驗結果)</p> <ul> <li> <strong>主要發現</strong>： <ul> <li> <p>在所有資料集的所有任務上，無論是 NDCG 還是 MRR 指標，HGT 的表現都</p> <p><strong>顯著且穩定地優於</strong>所有基準模型</p> </li> <li>以 OAG 資料集上的 Paper-Field (L1) 任務為例，HGT 的 NDCG 指標相比基準模型提升了 15-19%，MRR 指標提升了 18-21%</li> <li>與最強的基準模型 HAN 相比，HGT 在 CS、Med 和 OAG 資料集上的平均相對 NDCG 提升分別為 11%、10% 和 8% 36。總體平均性能提升約 20%</li> </ul> </li> <li> <strong>效率與參數</strong>： <ul> <li> <p>HGT 的參數數量比 RGCN、HetGNN 和 HAN 等其他異質圖模型</p> <p><strong>更少</strong>，且每個批次的訓練時間相當</p> </li> <li> <p>這證明了透過元關係三元組來參數化權重矩陣的策略，能夠在消耗更少資源的同時達到更好的泛化能力</p> </li> </ul> </li> <li> <strong>消融研究結果</strong>： <ul> <li>移除<strong>異質權重參數化 (-Heter)</strong> 會導致模型性能下降約 4%</li> <li>移除<strong>相對時間編碼 (-RTE)</strong> 會導致模型性能下降約 2%</li> <li>這兩個結果證明了 HGT 的兩個核心組件對於提升模型性能都至關重要</li> </ul> </li> </ul> <hr> <p>### 5.4 Case Study (案例探討：會議主題的時序演化)</p> <p>本案例旨在展示 RTE 元件捕捉圖譜動態性的能力</p> <ul> <li> <strong>方法</strong>：選取 100 個高引用的 CS 會議，為它們分別賦予 2000、2010、2020 三個時間戳，然後利用訓練好的 HGT 模型得到它們在不同時間點的嵌入表示，並找出最相似的 Top-5 會議</li> <li> <strong>發現</strong>：會議之間的關聯性隨時間發生了顯著變化 <ul> <li> <strong>WWW</strong>：在 2000 年，它與資料庫 (SIGMOD, VLDB) 和網路 (NSDI) 關係密切；到 2020 年，則更接近數據挖掘和資訊檢索領域 (KDD, SIGIR, WSDM)</li> <li> <strong>KDD</strong>：從 2000 年與傳統資料庫會議 (SIGMOD, ICDE) 的強關聯，演變到 2020 年與機器學習 (NeurIPS)、Web (WWW)、AI (AAAI) 等多個主題產生關聯</li> <li> <strong>NeurIPS</strong>：模型成功捕捉到它在 2020 年與新興的頂級深度學習會議 ICLR 的緊密關聯</li> </ul> </li> </ul> <table> <thead> <tr> <th>會議</th> <th>時間</th> <th>Top-5 最相似會議</th> </tr> </thead> <tbody> <tr> <td><strong>WWW</strong></td> <td>2000</td> <td>SIGMOD, VLDB, NSDI, GLOBECOM, SIGIR</td> </tr> <tr> <td> </td> <td>2020</td> <td>KDD, GLOBECOM, SIGIR, WSDM, SIGMOD</td> </tr> <tr> <td><strong>KDD</strong></td> <td>2000</td> <td>SIGMOD, ICDE, ICDM, CIKM, VLDB</td> </tr> <tr> <td> </td> <td>2020</td> <td>NeurIPS, SIGMOD, WWW, AAAI, EMNLP</td> </tr> <tr> <td><strong>NeurIPS</strong></td> <td>2000</td> <td>ICCV, ICML, ECCV, AAAI, CVPR</td> </tr> <tr> <td> </td> <td>2020</td> <td>ICML, CVPR, ICLR, ICCV, ACL</td> </tr> </tbody> </table> <hr> <p>### 5.5 Visualize Meta Relation Attention (視覺化元關係注意力)</p> <p>本節旨在證明 HGT</p> <p><strong>無需手動設計元路徑 (meta-path)，即可自動學習出重要的資訊傳遞路徑</strong></p> <ul> <li> <strong>方法</strong>：將 HGT 前兩層中擁有最高注意力值的元關係序列視覺化</li> <li> <strong>發現</strong>： <ul> <li>為了計算<strong>論文 (Paper)</strong> 節點的表示，模型發現最重要的 2-hop 路徑等價於傳統意義上的元路徑，例如： <ul> <li> <code class="language-plaintext highlighter-rouge">Paper - Venue - Paper</code> (PVP)</li> <li> <code class="language-plaintext highlighter-rouge">Paper - Field - Paper</code> (PFP)</li> <li> <code class="language-plaintext highlighter-rouge">Institute - Author - Paper</code> (IAP)</li> </ul> </li> <li>這些路徑的重要性是模型從資料中<strong>自動學到</strong>的，而非人工預設</li> <li>視覺化結果證明，HGT 能夠隱式地為特定下游任務學習和構建最重要的元路徑</li> </ul> </li> </ul> </article> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Chia-Fan Chu. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/assets/al_math/js/mathjax-setup.js"></script> <script defer src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6" crossorigin="anonymous"></script> <script src="/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/assets/al_img_tools/js/zoom.js"></script> <script defer src="/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-about",
+    title: "about",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/";
+    },
+  },{id: "nav-cv",
+          title: "CV",
+          description: "Education, experience, publications, and skills.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/cv/";
+          },
+        },{id: "nav-shared-notes",
+          title: "shared notes",
+          description: "Notes I keep while reading papers and working through courses. Shared as-is; most are living documents, so expect a few rough edges.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/notes/";
+          },
+        },{id: "notes-mastering-the-game-of-go-without-human-knowledge",
+          title: 'Mastering the Game of Go without Human Knowledge',
+          description: "PUCT math and why MCTS acts as a policy improvement operator.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/alphago-zero/";
+            },},{id: "notes-curriculum-learning-for-reinforcement-learning-domains-a-framework-and-survey",
+          title: 'Curriculum Learning for Reinforcement Learning Domains: A Framework and Survey',
+          description: "Section-by-section summary of the curriculum learning framework and its design dimensions.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-rl-survey/";
+            },},{id: "notes-a-survey-on-curriculum-learning",
+          title: 'A Survey on Curriculum Learning',
+          description: "Predefined vs automatic curricula and self-paced learning, summarized.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-survey/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-dual-attention-network-based-reinforcement-learning",
+          title: 'Flexible Job Shop Scheduling via Dual Attention Network-Based Reinforcement Learning',
+          description: "Dual-attention method with the math spelled out, plus a note on a missing ablation.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/daniel-dual-attention/";
+            },},{id: "notes-deep-reinforcement-learning-for-dynamic-scheduling-of-a-flexible-job-shop",
+          title: 'Deep Reinforcement Learning for Dynamic Scheduling of a Flexible Job Shop',
+          description: "MDP breakdown plus my comparison tables against related dynamic-scheduling designs.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-dynamic-fjs/";
+            },},{id: "notes-challenges-and-opportunities-in-deep-reinforcement-learning-with-graph-neural-networks",
+          title: 'Challenges and Opportunities in Deep Reinforcement Learning with Graph Neural Networks',
+          description: "Review of how DRL and GNNs combine, and where the open challenges are.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-gnn-review/";
+            },},{id: "notes-deep-rl-for-machine-scheduling-methodology-state-of-the-art-and-future-directions",
+          title: 'Deep RL for Machine Scheduling: Methodology, State of the Art, and Future Directions...',
+          description: "Taxonomy of state, action, and reward designs across the machine-scheduling literature.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-machine-scheduling-survey/";
+            },},{id: "notes-feudal-networks-for-hierarchical-reinforcement-learning",
+          title: 'FeUdal Networks for Hierarchical Reinforcement Learning',
+          description: "Manager/Worker architecture, transition policy gradient, and ablations explained.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/feudal-networks/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-graph-neural-network-and-deep-reinforcement-learning",
+          title: 'Flexible Job-Shop Scheduling via Graph Neural Network and Deep Reinforcement Learning',
+          description: "Detailed method and experiment summary of a key heterogeneous-graph baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-gnn-drl/";
+            },},{id: "notes-the-flexible-job-shop-scheduling-problem-a-review",
+          title: 'The Flexible Job Shop Scheduling Problem: A Review',
+          description: "Schedule classes, problem variants, and solution families, connected back to RL.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-review/";
+            },},{id: "notes-heterogeneous-graph-transformer",
+          title: 'Heterogeneous Graph Transformer',
+          description: "Mutual attention, message passing, and relative temporal encoding, with a worked example.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/heterogeneous-graph-transformer/";
+            },},{id: "notes-knowledge-enabled-multi-agent-drl-for-batch-machine-scheduling-in-semiconductor-fabrication",
+          title: 'Knowledge-enabled Multi-agent DRL for Batch Machine Scheduling in Semiconductor Fabrication',
+          description: "IRL plus MADRL pipeline, reward design, and my critique of it.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/knowledge-madrl-semiconductor/";
+            },},{id: "notes-list-scheduling-and-beam-search-methods-for-the-fjsp-with-sequencing-flexibility",
+          title: 'List Scheduling and Beam Search Methods for the FJSP with Sequencing Flexibility',
+          description: "Problem, method, and results of a strong non-learning FJSP baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/list-scheduling-beam-search-fjsp/";
+            },},{id: "notes-monte-carlo-tree-search-a-review-of-recent-modifications-and-applications",
+          title: 'Monte Carlo Tree Search: A Review of Recent Modifications and Applications',
+          description: "Survey walkthrough of the MCTS phases and variants, with my notes on relevance to scheduling.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mcts-review/";
+            },},{id: "notes-ch-0-introduction",
+          title: 'Ch 0 Introduction',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch0-introduction/";
+            },},{id: "notes-ch-1-traditional-machine-learning-on-graphs",
+          title: 'Ch 1 Traditional Machine Learning on Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch1-traditional-ml-on-graphs/";
+            },},{id: "notes-ch-10-11-15-knowledge-graph",
+          title: 'Ch 10, 11, 15 Knowledge Graph',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch10-11-15-knowledge-graph/";
+            },},{id: "notes-ch-12-gnns-for-recommender-systems",
+          title: 'Ch 12 GNNs for Recommender Systems',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch12-gnns-for-recommender-systems/";
+            },},{id: "notes-ch-14-advanced-topics-in-graph-neural-networks",
+          title: 'Ch 14 Advanced Topics in Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch14-advanced-topics/";
+            },},{id: "notes-ch-16-deep-generative-models-for-graphs",
+          title: 'Ch 16 Deep Generative Models for Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch16-deep-generative-models/";
+            },},{id: "notes-ch-17-geometric-graph-learning",
+          title: 'Ch 17 Geometric Graph Learning',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch17-geometric-graph-learning/";
+            },},{id: "notes-ch-19-label-propagation",
+          title: 'Ch 19 Label Propagation',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch19-label-propagation/";
+            },},{id: "notes-ch-2-node-embedding",
+          title: 'Ch 2 Node Embedding',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch2-node-embedding/";
+            },},{id: "notes-ch-20-scaling-up-gnns",
+          title: 'Ch 20 Scaling Up GNNs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch20-scaling-up-gnns/";
+            },},{id: "notes-ch-21-trustworthy-graph-ai",
+          title: 'Ch 21 Trustworthy Graph AI',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch21-trustworthy-graph-ai/";
+            },},{id: "notes-ch-3-graph-neural-networks",
+          title: 'Ch 3 Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch3-graph-neural-networks/";
+            },},{id: "notes-ch-4-a-general-perspective-on-graph-neural-networks",
+          title: 'Ch 4 A General Perspective on Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch4-general-perspective-on-gnn/";
+            },},{id: "notes-ch-5-gnn-augmentation-and-training",
+          title: 'Ch 5 GNN Augmentation and Training',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch5-gnn-augmentation-and-training/";
+            },},{id: "notes-ch-6-theory-of-graph-neural-networks",
+          title: 'Ch 6 Theory of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch6-theory-of-gnns/";
+            },},{id: "notes-ch-7-limits-of-graph-neural-networks",
+          title: 'Ch 7 Limits of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch7-limits-of-gnns/";
+            },},{id: "notes-ch-8-graph-transformers",
+          title: 'Ch 8 Graph Transformers',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch8-graph-transformers/";
+            },},{id: "notes-ch-9-machine-learning-with-heterogeneous-graphs",
+          title: 'Ch 9 Machine Learning with Heterogeneous Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch9-heterogeneous-graphs/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map plus my conclusions on how to design and train a GNN.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-overview/";
+            },},{id: "notes-clustering-method",
+          title: 'Clustering Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-clustering-method/";
+            },},{id: "notes-factor-analysis",
+          title: 'Factor Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-factor-analysis/";
+            },},{id: "notes-prerequisite",
+          title: 'Prerequisite',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-prerequisite/";
+            },},{id: "notes-principal-component-analysis",
+          title: 'Principal Component Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-principal-component-analysis/";
+            },},{id: "notes-ch-14-general-purpose-procedures-for-deterministic-scheduling",
+          title: 'Ch 14 General Purpose Procedures for Deterministic Scheduling',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch14-general-purpose-procedures/";
+            },},{id: "notes-ch-15-more-advance-general-purpose-procedures",
+          title: 'Ch 15 More Advance General Purpose Procedures',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch15-more-advance-general-purpose-procedures/";
+            },},{id: "notes-ch-16-modeling-and-solving-scheduling-problems-in-practice",
+          title: 'Ch 16 Modeling and Solving Scheduling Problems in Practice',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch16-modeling-and-solving-scheduling-problems/";
+            },},{id: "notes-ch-2-deterministic-models-preliminaries",
+          title: 'Ch 2 Deterministic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch2-deterministic-models-preliminaries/";
+            },},{id: "notes-ch-3-single-machine-method",
+          title: 'Ch 3 Single Machine Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch3-single-machine-method/";
+            },},{id: "notes-ch-4-advance-single-machine",
+          title: 'Ch 4 Advance Single Machine',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch4-advance-single-machine/";
+            },},{id: "notes-ch-5-parallel-machine-model",
+          title: 'Ch 5 Parallel Machine Model',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch5-parallel-machine-model/";
+            },},{id: "notes-ch-6-flow-shop",
+          title: 'Ch 6 Flow Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch6-flow-shop/";
+            },},{id: "notes-ch-7-job-shop",
+          title: 'Ch 7 Job Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch7-job-shop/";
+            },},{id: "notes-ch-8-open-shop",
+          title: 'Ch 8 Open Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch8-open-shop/";
+            },},{id: "notes-ch-9-stochastic-models-preliminaries",
+          title: 'Ch 9 Stochastic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch9-stochastic-models-preliminaries/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map: which chapters are covered and how they fit together.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-overview/";
+            },},{id: "notes-real-time-scheduling-for-dynamic-partial-no-wait-multiobjective-flexible-job-shop-by-drl",
+          title: 'Real-Time Scheduling for Dynamic Partial-No-Wait Multiobjective Flexible Job Shop by DRL',
+          description: "Hierarchical multi-agent MDP with rule tables and Pareto metrics.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/realtime-partial-no-wait-fjs/";
+            },},{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%6F%6B%75%6D%6F%63%68%75%35%35@%67%6D%61%69%6C.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-github',
+        title: 'GitHub',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://github.com/okumochu", "_blank");
+        },
+      },{
+        id: 'social-linkedin',
+        title: 'LinkedIn',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.linkedin.com/in/chia-fan-chu", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=BfaixEUAAAAJ", "_blank");
+        },
+      },];
+
+</script> <script src="/assets/al_search/js/shortcut-key.js"></script> </body> </html>

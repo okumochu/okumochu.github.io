@@ -1,0 +1,317 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Mastering the Game of Go without Human Knowledge | Chia-Fan Chu </title> <meta name="author" content="Chia-Fan Chu"> <meta name="description" content="PUCT math and why MCTS acts as a policy improvement operator."> <meta name="keywords" content="chia-fan chu, reinforcement learning, scheduling, operations research, national taiwan university"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;%E2%9A%9B%EF%B8%8F&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/assets/css/main.css?v=f0b101217084a90093badfe99ff9a7d1"> <link rel="canonical" href="https://okumochu.github.io/notes/alphago-zero/"> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/"> <span class="font-weight-bold">Chia-Fan</span> Chu </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/cv/">CV </a> </li> <li class="nav-item active"> <a class="nav-link" href="/notes/">shared notes <span class="sr-only">(current)</span> </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title">Mastering the Game of Go without Human Knowledge</h1> <p class="post-description">PUCT math and why MCTS acts as a policy improvement operator.</p> </header> <article> <hr> <h2 id="introduction">Introduction</h2> <blockquote> <p>Starting <em>tabula rasa</em>, our new program AlphaGo Zero achieved superhuman performance, winning 100:0 against the previously published, champion-defeating AlphaGo.</p> </blockquote> <p>AlphaGo Zero 把整套系統收斂成一個簡單的迴圈: <strong>MCTS 產生比 NN 更好的決策 : NN 學習去模仿這些決策 : 更好的 NN 再讓 MCTS 變更強</strong>。論文最大的賣點是不用任何人類棋譜，只靠 self-play 跟這個 MCTS-policy-improvement 的閉環就達到超人表現。</p> <p>對我來說重點不在 RL loss 本身 (就是 cross-entropy + MSE)，而在於 <strong>MCTS 在這篇被當成 policy improvement operator 來用</strong>，這個觀念是後續 AlphaZero / MuZero / 各種 plan-then-learn 系統的核心。</p> <h2 id="跟前代-alphago-的對比">跟前代 AlphaGo 的對比</h2> <table> <thead> <tr> <th>Component</th> <th>AlphaGo (Fan/Lee)</th> <th>AlphaGo Zero</th> </tr> </thead> <tbody> <tr> <td>訓練資料</td> <td>人類棋譜 supervised + self-play RL</td> <td>純 self-play，from scratch</td> </tr> <tr> <td>Network</td> <td>分開的 policy net + value net (plain CNN)</td> <td>單一 dual-head 網路 \(f_\theta(s) \to (p, v)\) (ResNet)</td> </tr> <tr> <td>Rollout</td> <td>Fast rollout policy 跑到終局，跟 value net 加權平均</td> <td> <mark>完全沒有 rollout</mark>，leaf 直接用 \(v\)</td> </tr> <tr> <td>Selection bonus</td> <td>UCT 變形 (rollout count + prior)</td> <td>PUCT (visit-count-based + prior)</td> </tr> <tr> <td>Tree policy 來源</td> <td>SL policy 提供 prior \(P\)</td> <td>Self-play 出來的 \(p\) 自己當 prior</td> </tr> </tbody> </table> <p>值得注意的是 <mark>拿掉 rollout 反而變強</mark>。原因是 rollout 的雜訊很大，而一個訓得夠好的 value network 能給更穩定的 leaf 估值: 多 simulation 一次比 rollout 一次便宜很多。</p> <h2 id="mcts-in-alphago-zero">MCTS in AlphaGo Zero</h2> <p>整體還是經典的 four-phase loop，但每一步都被 NN 改寫過。</p> <h3 id="樹節點儲存什麼">樹節點儲存什麼</h3> <p>每條邊 \((s,a)\) 儲存四個量:</p> <ul> <li>\(N(s,a)\): visit count</li> <li>\(W(s,a)\): cumulative action-value (所有經過這條邊的 leaf 估值總和)</li> <li>\(Q(s,a) = W(s,a)/N(s,a)\): mean action-value</li> <li>\(P(s,a)\): prior probability，這條邊第一次被展開時由 NN 給出</li> </ul> <h3 id="phase-1-selection-puct">Phase 1: Selection (PUCT)</h3> <p>從 root 走到 leaf，每一步選 \(a_t = \arg\max_{a} \left[ Q(s_t, a) + U(s_t, a) \right], \quad U(s,a) = c_{\text{puct} } \cdot P(s,a) \cdot \frac{\sqrt{\sum_b N(s,b)} }{1 + N(s,a)}\)</p> <p>直觀拆解:</p> <ol> <li>\(Q(s,a)\): exploitation，跟 UCT 一樣</li> <li>\(P(s,a)\): 由 NN 提供的 prior，<mark>這是跟原始 UCT 最大的差別</mark>。UCT 的 exploration term 只看訪問次數，PUCT 多了一個「神經網路覺得這步看起來不錯」的乘數</li> <li>\(\sqrt{\sum_b N(s,b)} / (1+N(s,a))\): 訪問次數還少時這項很大，鼓勵探索；隨 \(N(s,a)\) 增長被壓下來</li> <li>\(c_{\text{puct} }\): 平衡 exploration/exploitation 的常數</li> </ol> <p>PUCT 的好處是 <strong>prior 強的 action 在早期就會被優先探索</strong>，不會像純 UCT 那樣前期完全亂走。等訪問次數累積夠了，\(Q\) 會主導，prior 的影響相對衰減。</p> <h3 id="phase-2--3-expand-and-evaluate-合併了不再有獨立的-simulation">Phase 2 &amp; 3: Expand and Evaluate (合併了，不再有獨立的 Simulation)</h3> <p>當 selection 走到 leaf \(s_L\):</p> <ol> <li>把 \(s_L\) 餵進 NN，拿到 \((p, v) = f_\theta(s_L)\)</li> <li>對每個合法 action \(a\)，設 \(P(s_L, a) \leftarrow p_a\) 並初始化 \(N=W=Q=0\)</li> <li><mark>Leaf value 直接用 \(v\)，不跑 rollout</mark></li> </ol> <p>這就是論文最關鍵的工程簡化: 把「Expansion + Simulation」兩個階段壓成 single forward pass。</p> <h3 id="phase-4-backup">Phase 4: Backup</h3> <p>從 leaf 一路回到 root，沿路每條邊:</p> \[N(s,a) \leftarrow N(s,a) + 1, \quad W(s,a) \leftarrow W(s,a) + v, \quad Q(s,a) \leftarrow W(s,a)/N(s,a)\] <p>Two-player zero-sum game 要記得 \(v\) 的正負號每步翻轉 (對手的好就是自己的壞)。</p> <h3 id="root-exploration-dirichlet-noise">Root Exploration: Dirichlet Noise</h3> <p>純 NN prior 在 self-play 早期很容易讓 search 永遠卡在同一條開局線上。解法是在 root 注入 Dirichlet 雜訊:</p> \[P(s_{\text{root} }, a) = (1-\varepsilon) p_a + \varepsilon \eta_a, \quad \eta \sim \text{Dir}(0.03)\] <p>論文用 \(\varepsilon = 0.25\)。重點是 <mark>只在 root 加</mark>，不在內部節點加: 內部要保持 NN 的決策性。Dirichlet 的 \(\alpha=0.03\) 很小，會在合法 action 中隨機把一兩個 prior 推高，鼓勵試試平常不會走的開局。</p> <h3 id="從-mcts-抽出實際走步">從 MCTS 抽出實際走步</h3> <p>跑完 \(1600\) 次 simulation 後，得到 root 各 action 的訪問次數 \(N(s_{\text{root} }, a)\)。最終走步機率: \(\pi(a\vert s) = \frac{N(s,a)^{1/\tau} }{\sum_b N(s,b)^{1/\tau} }\)</p> <ul> <li>對局前 30 步: \(\tau = 1\)，按 visit count 比例抽樣 (保持 self-play 多樣性)</li> <li>之後: \(\tau \to 0\)，等價於 greedy 取 \(\arg\max_a N(s,a)\)</li> <li> <mark>為什麼用 visit count 而不是 \(Q\)</mark>: visit count 已經結合了 \(Q\) 跟 \(P\) 跟 exploration history，是更穩定的訊號；單看 \(Q\) 容易被低訪問次數的 noisy 估值誤導</li> </ul> <h2 id="mcts-作為-policy-improvement-operator">MCTS 作為 Policy Improvement Operator</h2> <p>這是這篇真正觀念上的貢獻，值得單獨拉出來講。</p> <p>NN 給的 prior \(p\) 本身是一個 policy。跑完 MCTS 後得到的 \(\pi\) (visit count distribution) 是另一個 policy。理論上跟實驗上都有: <mark>\(\pi\) 嚴格優於 \(p\)</mark>，因為 \(\pi\) 多用了 lookahead 跟 value estimate。</p> <p>訓練目標於是變成 <strong>讓 NN 模仿 MCTS 的輸出</strong>:</p> \[\mathcal{L} = (z - v)^2 - \pi^{\top} \log p + c\Vert \theta\Vert ^2\] <ul> <li>\((z-v)^2\): value head 學最終勝負 (MSE)</li> <li>\(-\pi^{\top}\log p\): policy head 學 MCTS 抽出的分佈 (cross-entropy)</li> <li>L2 正則化</li> </ul> <p>從 RL 角度看這就是 <strong>Policy Iteration</strong>:</p> <ul> <li>Policy evaluation: NN 學 \(v \approx V^\pi\)</li> <li>Policy improvement: MCTS 拿 \(p\) 做 prior 跑 search 得到更好的 \(\pi\)</li> <li>然後把 \(p\) 推向 \(\pi\)，循環</li> </ul> <p>跟一般 actor-critic 的差別: improvement step 不是 gradient ascent 而是 <mark>explicit planning</mark>。這也是為什麼這套方法在有完美 simulator 的領域 (棋類、scheduling、化學合成) 特別強。</p> <h2 id="訓練細節-摘要">訓練細節 (摘要)</h2> <ul> <li>\(4.9 \times 10^6\) 場 self-play games</li> <li>每步 \(1600\) simulations，思考時間約 0.4 秒</li> <li>ResNet (20 或 40 個 residual blocks)，輸入是最近 8 步的棋盤 stack</li> <li>訓練 72 小時打到超越 AlphaGo Lee；40 天打到超越 AlphaGo Master (89:11)</li> <li>沒有任何 domain heuristic、沒有人類棋譜、沒有 rollout policy</li> </ul> <h2 id="limitations--thoughts">Limitations &amp; Thoughts</h2> <h3 id="limitations">Limitations</h3> <ul> <li> <strong>依賴完美 simulator</strong>: AlphaGo Zero 能 self-play 是因為圍棋的 transition function 已知且 deterministic。換到 imperfect information 或 stochastic transition (例如 scheduling 中有隨機到達工件) 就不能直接套，需要 MuZero 那種 learned model</li> <li> <strong>計算成本極高</strong>: 4.9M games × 1600 sims × ResNet forward pass，原文用了 TPU 群組。學術復現幾乎不可能在小規模重現完整訓練</li> <li> <strong>沒有 ablation 區分 MCTS 跟 ResNet 的貢獻</strong>: 同時換了 architecture (plain CNN → ResNet) 跟訓練 pipeline，paper 自己做的 ablation 顯示 ResNet + dual-head 比舊 architecture 強很多，但沒拆出 MCTS-no-rollout 跟 architecture 各自貢獻多少</li> <li> <strong>單一 game type</strong>: 雖然後續 AlphaZero 推廣到 chess/shogi，但這篇只報告圍棋</li> </ul> <h3 id="relevance-to-dfjsp--drl-for-scheduling">Relevance to DFJSP / DRL for Scheduling</h3> <ul> <li> <strong>MCTS as policy improvement</strong> 對 scheduling 直接適用: 在 DRL policy 上面包一層 MCTS，用 visit-count distribution 當訓練 target，比純 policy gradient 更穩定 (Spear 系統就是這個思路)</li> <li> <strong>No-rollout MCTS</strong> 在 scheduling 特別划算: scheduling 的 random rollout 信號很差 (makespan 受後續所有動作影響)，直接用 value network 截斷 simulation 更合理。這跟 <a href="/notes/mcts-review/">Monte Carlo Tree Search a review of recent modifications and applications</a> 5.4 節提到的 early termination 路線一致</li> <li> <strong>PUCT 公式</strong>: 對 DFJSP 這種 action space 巨大但很多 action 一看就不會選的問題，PUCT 的 prior-driven exploration 比 vanilla UCT 適合 (UCT 一開始平均訪問太浪費)</li> <li> <strong>Dirichlet noise at root</strong>: 可以借來解 DRL 訓練早期 policy collapse 的問題</li> <li> <strong><mark>這篇的最大 takeaway</mark></strong>: 如果 DFJSP 有夠好的 simulator，跑 self-play + MCTS-guided imitation 比直接做 model-free RL 更有可能突破 plateau。是值得放在後續實驗計畫的方向</li> </ul> <h2 id="related-notes">Related Notes</h2> <ul> <li><a href="/notes/mcts-review/">Monte Carlo Tree Search a review of recent modifications and applications</a></li> </ul> </article> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Chia-Fan Chu. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/assets/al_math/js/mathjax-setup.js"></script> <script defer src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6" crossorigin="anonymous"></script> <script src="/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/assets/al_img_tools/js/zoom.js"></script> <script defer src="/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-about",
+    title: "about",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/";
+    },
+  },{id: "nav-cv",
+          title: "CV",
+          description: "Education, experience, publications, and skills.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/cv/";
+          },
+        },{id: "nav-shared-notes",
+          title: "shared notes",
+          description: "Notes I keep while reading papers and working through courses. Shared as-is; most are living documents, so expect a few rough edges.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/notes/";
+          },
+        },{id: "notes-mastering-the-game-of-go-without-human-knowledge",
+          title: 'Mastering the Game of Go without Human Knowledge',
+          description: "PUCT math and why MCTS acts as a policy improvement operator.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/alphago-zero/";
+            },},{id: "notes-curriculum-learning-for-reinforcement-learning-domains-a-framework-and-survey",
+          title: 'Curriculum Learning for Reinforcement Learning Domains: A Framework and Survey',
+          description: "Section-by-section summary of the curriculum learning framework and its design dimensions.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-rl-survey/";
+            },},{id: "notes-a-survey-on-curriculum-learning",
+          title: 'A Survey on Curriculum Learning',
+          description: "Predefined vs automatic curricula and self-paced learning, summarized.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-survey/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-dual-attention-network-based-reinforcement-learning",
+          title: 'Flexible Job Shop Scheduling via Dual Attention Network-Based Reinforcement Learning',
+          description: "Dual-attention method with the math spelled out, plus a note on a missing ablation.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/daniel-dual-attention/";
+            },},{id: "notes-deep-reinforcement-learning-for-dynamic-scheduling-of-a-flexible-job-shop",
+          title: 'Deep Reinforcement Learning for Dynamic Scheduling of a Flexible Job Shop',
+          description: "MDP breakdown plus my comparison tables against related dynamic-scheduling designs.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-dynamic-fjs/";
+            },},{id: "notes-challenges-and-opportunities-in-deep-reinforcement-learning-with-graph-neural-networks",
+          title: 'Challenges and Opportunities in Deep Reinforcement Learning with Graph Neural Networks',
+          description: "Review of how DRL and GNNs combine, and where the open challenges are.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-gnn-review/";
+            },},{id: "notes-deep-rl-for-machine-scheduling-methodology-state-of-the-art-and-future-directions",
+          title: 'Deep RL for Machine Scheduling: Methodology, State of the Art, and Future Directions...',
+          description: "Taxonomy of state, action, and reward designs across the machine-scheduling literature.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-machine-scheduling-survey/";
+            },},{id: "notes-feudal-networks-for-hierarchical-reinforcement-learning",
+          title: 'FeUdal Networks for Hierarchical Reinforcement Learning',
+          description: "Manager/Worker architecture, transition policy gradient, and ablations explained.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/feudal-networks/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-graph-neural-network-and-deep-reinforcement-learning",
+          title: 'Flexible Job-Shop Scheduling via Graph Neural Network and Deep Reinforcement Learning',
+          description: "Detailed method and experiment summary of a key heterogeneous-graph baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-gnn-drl/";
+            },},{id: "notes-the-flexible-job-shop-scheduling-problem-a-review",
+          title: 'The Flexible Job Shop Scheduling Problem: A Review',
+          description: "Schedule classes, problem variants, and solution families, connected back to RL.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-review/";
+            },},{id: "notes-heterogeneous-graph-transformer",
+          title: 'Heterogeneous Graph Transformer',
+          description: "Mutual attention, message passing, and relative temporal encoding, with a worked example.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/heterogeneous-graph-transformer/";
+            },},{id: "notes-knowledge-enabled-multi-agent-drl-for-batch-machine-scheduling-in-semiconductor-fabrication",
+          title: 'Knowledge-enabled Multi-agent DRL for Batch Machine Scheduling in Semiconductor Fabrication',
+          description: "IRL plus MADRL pipeline, reward design, and my critique of it.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/knowledge-madrl-semiconductor/";
+            },},{id: "notes-list-scheduling-and-beam-search-methods-for-the-fjsp-with-sequencing-flexibility",
+          title: 'List Scheduling and Beam Search Methods for the FJSP with Sequencing Flexibility',
+          description: "Problem, method, and results of a strong non-learning FJSP baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/list-scheduling-beam-search-fjsp/";
+            },},{id: "notes-monte-carlo-tree-search-a-review-of-recent-modifications-and-applications",
+          title: 'Monte Carlo Tree Search: A Review of Recent Modifications and Applications',
+          description: "Survey walkthrough of the MCTS phases and variants, with my notes on relevance to scheduling.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mcts-review/";
+            },},{id: "notes-ch-0-introduction",
+          title: 'Ch 0 Introduction',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch0-introduction/";
+            },},{id: "notes-ch-1-traditional-machine-learning-on-graphs",
+          title: 'Ch 1 Traditional Machine Learning on Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch1-traditional-ml-on-graphs/";
+            },},{id: "notes-ch-10-11-15-knowledge-graph",
+          title: 'Ch 10, 11, 15 Knowledge Graph',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch10-11-15-knowledge-graph/";
+            },},{id: "notes-ch-12-gnns-for-recommender-systems",
+          title: 'Ch 12 GNNs for Recommender Systems',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch12-gnns-for-recommender-systems/";
+            },},{id: "notes-ch-14-advanced-topics-in-graph-neural-networks",
+          title: 'Ch 14 Advanced Topics in Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch14-advanced-topics/";
+            },},{id: "notes-ch-16-deep-generative-models-for-graphs",
+          title: 'Ch 16 Deep Generative Models for Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch16-deep-generative-models/";
+            },},{id: "notes-ch-17-geometric-graph-learning",
+          title: 'Ch 17 Geometric Graph Learning',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch17-geometric-graph-learning/";
+            },},{id: "notes-ch-19-label-propagation",
+          title: 'Ch 19 Label Propagation',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch19-label-propagation/";
+            },},{id: "notes-ch-2-node-embedding",
+          title: 'Ch 2 Node Embedding',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch2-node-embedding/";
+            },},{id: "notes-ch-20-scaling-up-gnns",
+          title: 'Ch 20 Scaling Up GNNs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch20-scaling-up-gnns/";
+            },},{id: "notes-ch-21-trustworthy-graph-ai",
+          title: 'Ch 21 Trustworthy Graph AI',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch21-trustworthy-graph-ai/";
+            },},{id: "notes-ch-3-graph-neural-networks",
+          title: 'Ch 3 Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch3-graph-neural-networks/";
+            },},{id: "notes-ch-4-a-general-perspective-on-graph-neural-networks",
+          title: 'Ch 4 A General Perspective on Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch4-general-perspective-on-gnn/";
+            },},{id: "notes-ch-5-gnn-augmentation-and-training",
+          title: 'Ch 5 GNN Augmentation and Training',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch5-gnn-augmentation-and-training/";
+            },},{id: "notes-ch-6-theory-of-graph-neural-networks",
+          title: 'Ch 6 Theory of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch6-theory-of-gnns/";
+            },},{id: "notes-ch-7-limits-of-graph-neural-networks",
+          title: 'Ch 7 Limits of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch7-limits-of-gnns/";
+            },},{id: "notes-ch-8-graph-transformers",
+          title: 'Ch 8 Graph Transformers',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch8-graph-transformers/";
+            },},{id: "notes-ch-9-machine-learning-with-heterogeneous-graphs",
+          title: 'Ch 9 Machine Learning with Heterogeneous Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch9-heterogeneous-graphs/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map plus my conclusions on how to design and train a GNN.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-overview/";
+            },},{id: "notes-clustering-method",
+          title: 'Clustering Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-clustering-method/";
+            },},{id: "notes-factor-analysis",
+          title: 'Factor Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-factor-analysis/";
+            },},{id: "notes-prerequisite",
+          title: 'Prerequisite',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-prerequisite/";
+            },},{id: "notes-principal-component-analysis",
+          title: 'Principal Component Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-principal-component-analysis/";
+            },},{id: "notes-ch-14-general-purpose-procedures-for-deterministic-scheduling",
+          title: 'Ch 14 General Purpose Procedures for Deterministic Scheduling',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch14-general-purpose-procedures/";
+            },},{id: "notes-ch-15-more-advance-general-purpose-procedures",
+          title: 'Ch 15 More Advance General Purpose Procedures',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch15-more-advance-general-purpose-procedures/";
+            },},{id: "notes-ch-16-modeling-and-solving-scheduling-problems-in-practice",
+          title: 'Ch 16 Modeling and Solving Scheduling Problems in Practice',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch16-modeling-and-solving-scheduling-problems/";
+            },},{id: "notes-ch-2-deterministic-models-preliminaries",
+          title: 'Ch 2 Deterministic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch2-deterministic-models-preliminaries/";
+            },},{id: "notes-ch-3-single-machine-method",
+          title: 'Ch 3 Single Machine Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch3-single-machine-method/";
+            },},{id: "notes-ch-4-advance-single-machine",
+          title: 'Ch 4 Advance Single Machine',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch4-advance-single-machine/";
+            },},{id: "notes-ch-5-parallel-machine-model",
+          title: 'Ch 5 Parallel Machine Model',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch5-parallel-machine-model/";
+            },},{id: "notes-ch-6-flow-shop",
+          title: 'Ch 6 Flow Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch6-flow-shop/";
+            },},{id: "notes-ch-7-job-shop",
+          title: 'Ch 7 Job Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch7-job-shop/";
+            },},{id: "notes-ch-8-open-shop",
+          title: 'Ch 8 Open Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch8-open-shop/";
+            },},{id: "notes-ch-9-stochastic-models-preliminaries",
+          title: 'Ch 9 Stochastic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch9-stochastic-models-preliminaries/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map: which chapters are covered and how they fit together.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-overview/";
+            },},{id: "notes-real-time-scheduling-for-dynamic-partial-no-wait-multiobjective-flexible-job-shop-by-drl",
+          title: 'Real-Time Scheduling for Dynamic Partial-No-Wait Multiobjective Flexible Job Shop by DRL',
+          description: "Hierarchical multi-agent MDP with rule tables and Pareto metrics.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/realtime-partial-no-wait-fjs/";
+            },},{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%6F%6B%75%6D%6F%63%68%75%35%35@%67%6D%61%69%6C.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-github',
+        title: 'GitHub',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://github.com/okumochu", "_blank");
+        },
+      },{
+        id: 'social-linkedin',
+        title: 'LinkedIn',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.linkedin.com/in/chia-fan-chu", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=BfaixEUAAAAJ", "_blank");
+        },
+      },];
+
+</script> <script src="/assets/al_search/js/shortcut-key.js"></script> </body> </html>

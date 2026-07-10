@@ -1,0 +1,317 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Prerequisite | Chia-Fan Chu </title> <meta name="author" content="Chia-Fan Chu"> <meta name="description" content="Chia-Fan Chu (禇家帆): graduate student at National Taiwan University working on reinforcement learning for production scheduling and applied operations research. "> <meta name="keywords" content="chia-fan chu, reinforcement learning, scheduling, operations research, national taiwan university"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;%E2%9A%9B%EF%B8%8F&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/assets/css/main.css?v=f0b101217084a90093badfe99ff9a7d1"> <link rel="canonical" href="https://okumochu.github.io/notes/mva-prerequisite/"> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/"> <span class="font-weight-bold">Chia-Fan</span> Chu </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/cv/">CV </a> </li> <li class="nav-item active"> <a class="nav-link" href="/notes/">shared notes <span class="sr-only">(current)</span> </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title">Prerequisite</h1> <p class="post-description"></p> </header> <article> <p>#linear_algebra #mathematical_statistics</p> <h3 id="what-is-eigen-decomposition">What is Eigen Decomposition</h3> <h6 id="eigen-decomposition-對角化--a--x-lambda-x-1">Eigen decomposition (對角化): \(A = X \Lambda X^{-1}\)</h6> <ul> <li>其中 \(X = [e_1, \ldots, e_n]\) 的各行是特徵向量，\(X\) 未必是正交矩陣</li> <li>並且 \(\Lambda\) 是特徵值，是一個對角矩陣</li> <li>幾何意義上來就是把一組向量做旋轉後 \(X^{-1}\)，拉伸\(\Lambda\)，再旋轉回去\(X\)</li> </ul> <h6 id="如何判斷一個矩陣是否可以對角化">如何判斷一個矩陣是否可以對角化</h6> <ul> <li>標準流程: 看對 \(A\) 的每一個特徵值 \(\lambda\)，都有 \(\text{algebraic multiplicity} = \text{geometric multiplicity}\) <ul> <li>對於每個 \(\lambda\): <ul> <li>\(a(\lambda)\) = \(\lambda\) 在特徵多項式 \(\det(A - tI)\) 裡的重根次數 <ul> <li>這個倍率 \(\lambda\) <strong>應該</strong>佔多少個維度</li> </ul> </li> <li>\(g(\lambda) = \dim \ker(A - \lambda I) = n - \operatorname{rank}(A - \lambda I)\)（即 eigenspace 的維度） <ul> <li>這個倍率<strong>實際上</strong>能提供的獨立純拉伸方向數量</li> </ul> </li> <li>一般而言 \(1 \leq g(\lambda) \leq a(\lambda)\) 永遠成立</li> <li>若 \(g &lt; a\) 稱為 defective，就 <strong>不可</strong> 對角化</li> </ul> </li> <li>幾何上來說，對角化就是要把這個矩陣的行為，轉換成 \(n\) 個彼此不相關的純拉伸</li> <li>若 \(g &lt; a\)，代表這個 \(\lambda\) 應該佔的維度沒有被填滿 → 整個空間<strong>無法被純拉伸的方向鋪滿</strong> </li> <li>缺的 \(a-g\) 個方向會被 <strong>shear</strong> 補上，而 shear 不是對角矩陣能描述的動作，因為對角矩陣代表彼此不相關，但是 sheer 代表某個座標軸的值會彼此影響</li> </ul> </li> <li>實務上快速判斷的方法 <ul> <li>對稱 (\(A^T = A\)，實數) <ul> <li>永遠可對角化，除此之外 \(X\) 可選成 <strong>Orthonormal Matrix</strong> \(Q\) (\(Q^T Q = I\))，得 \(A = Q\Lambda Q^T\)，特徵值全為實數</li> </ul> </li> <li>Hermitian (\(A^* = A\)，複數) <ul> <li>對稱的複數版本 (\(A^*\) 是共軛轉置)</li> <li>永遠可對角化，\(X\) 可選成 <strong>Unitary Matrix</strong> \(U\) (\(U^* U = I\))，特徵值仍全為實數</li> </ul> </li> <li>Normal (\(A^* A = A A^*\)) <ul> <li>最一般的結構，涵蓋 unitary、orthogonal、Hermitian、skew-Hermitian。永遠可對角化，\(X\) 可選成 unitary，但 <strong>特徵值未必為實</strong> </li> </ul> </li> <li> <strong>結構強度</strong>: \(\text{Normal} \subset \text{Hermitian} \subset \text{Normal} \subset \text{可對角化}\)</li> </ul> </li> <li><mark>如果都不滿足，只能乖乖跑標準流程</mark></li> </ul> <hr> <h3 id="given-a-real-symmetric-matrix-a_ntimes-n">Given a real symmetric matrix \(A_{n\times n}\)</h3> <p>MVA - week 1, 第 4 頁</p> <h5 id="為什麼-eigen-value-必為實數">為什麼 eigen value 必為實數</h5> <ul> <li>根據代數基本原理，在實數空間裡一元 n 次方程式存在 n 個解</li> <li>代表特徵多項式 \(\det(A - \lambda I) = 0\) 在 \(\mathbb{C}\) 中恰有 \(n\) 個根</li> <li>因為 A 是實對稱矩陣，所以 \(A =\bar{A}= A^T\) (取共軛就是虛部變號)</li> <li>取共軛轉置 (conjugagte tanspose) \(A^* = \bar{A}^T = A\) \((Ax)^* = (\lambda x)^* \implies x^* A^* = \bar{\lambda}\, x^* \implies x^* A = \bar{\lambda}\, x^*\)</li> <li>由原式 \(A x = \lambda x\) <strong>左乘</strong> \(x^*\) \(x^*(Ax) = x^*(\lambda x) \implies x^* A x = \lambda\, x^* x\)</li> <li>由共軛式 \(x^* A = \bar{\lambda}\, x^*\) <strong>右乘</strong> \(x\) \((x^* A)\, x = \bar{\lambda}\, x^* x \implies x^* A x = \bar{\lambda}\, x^* x\)</li> <li>上下兩式相等並相減： \((\lambda - \bar{\lambda})\, x^* x = 0.\)</li> <li>因 \(x \neq 0 \Rightarrow x^* x = \sum_i \vert x_i\vert ^2 &gt; 0\)，故 \(\lambda = \bar{\lambda}\)，即 \(\lambda \in \mathbb{R}\)。\(\blacksquare\)</li> </ul> <h6 id="為什麼能找到-n-set-of-eigen-vector-且彼此正交">為什麼能找到 \(n\) set of eigen vector 且彼此正交</h6> <p>#unsolved</p> <p><strong>證明策略 (Rayleigh quotient / 變分法)</strong>：</p> <p>把「找特徵向量」轉化成「在單位球面上最大化 \(x^T A x\)」的<strong>最佳化問題</strong>。</p> <ul> <li>每個 eigenvalue = quadratic form \(x^T A x\) 在某個子空間上的極值</li> <li>每個 eigenvector = 達到那個極值的方向</li> <li>流程：在單位球面上找 \(x^T A x\) 的最大點 → 得到第一個 eigenvector \(v_1\)；再把搜尋範圍限制到 \(v_1^\perp \cap\) 單位球面，繼續找最大點 → 得到 \(v_2\)；依此做到 \(v_n\)</li> </ul> <p>這個觀點直接連到 PCA：第一主成分 = 資料散度最大的方向 = 最大 eigenvalue 的 eigenvector。</p> <hr> <p><strong>核心工具</strong></p> <ol> <li> <strong>Rayleigh quotient</strong> \(R(x) = \dfrac{x^T A x}{x^T x}\) <ul> <li>加分母是為了讓 \(R\) 不受 \(x\) 長度影響 (因為 \(x^T A x\) 對 \(x\) 的大小二次齊次，同方向的 \(x\) 會被 scale)；等價於把 \(x\) 限制在<strong>單位球面</strong> \(S^{n-1} = \{x : \Vert x\Vert =1\}\) 上看 \(x^T A x\)</li> </ul> </li> <li> <strong>Weierstrass 極值定理</strong>：連續函數在緊緻集上必達到極大值與極小值 <ul> <li>\(S^{n-1}\) 在 \(\mathbb{R}^n\) 中是有界閉集 → 緊緻</li> <li>\(x^T A x\) 是 \(x\) 的多項式 → 連續</li> <li>∴ \(x^T A x\) 在 \(S^{n-1}\) 上<strong>一定</strong>達到極大、極小值 (<strong>不需要依賴代數基本定理</strong>，這是與代數派證法最大的分水嶺)</li> </ul> </li> <li> <strong>Lagrange 乘子法</strong>：在約束 \(g(x)=0\) 下最佳化 \(f(x)\)，critical point 滿足 \(\nabla f = \sum_i \mu_i \nabla g_i\) <ul> <li>會用到 \(\nabla_x (x^T A x) = 2 A x\) (需要 \(A^T = A\)，否則梯度是 \((A + A^T)x\))</li> </ul> </li> </ol> <hr> <p><strong>Step 1. 第一個特徵向量 = 單位球面上 \(x^T A x\) 的最大化點</strong></p> <ol> <li>定義目標 \(f(x) = x^T A x\)，約束 \(g(x) = x^T x - 1 = 0\)</li> <li>由 Weierstrass，\(f\) 在 \(S^{n-1}\) 上<strong>必存在</strong>最大值，記最大點為 \(v_1\)，最大值為 \(\lambda_1 := v_1^T A v_1 = \max_{\Vert x\Vert =1} x^T A x\)</li> <li>建構 Lagrangian: \(\mathcal{L}(x, \mu) = x^T A x - \mu\,(x^T x - 1)\)</li> <li>First-order condition (\(\nabla_x \mathcal{L} = 0\)): \(2 A x - 2 \mu x = 0 \implies A x = \mu x\) <ul> <li>這一步是整個證明的<strong>魔法</strong>：Lagrange 的梯度條件<strong>直接</strong>就是 eigenvalue 方程，無需額外構造</li> </ul> </li> <li>所以最大點 \(v_1\) 自動滿足 \(A v_1 = \mu v_1\)，即 \(v_1\) 是 \(A\) 的 eigenvector；對應的 Lagrange 乘子 \(\mu\) 就是 eigenvalue</li> <li>用 \(v_1^T\) 左乘兩邊確定 \(\mu\) 的數值： \(v_1^T A v_1 = \mu\, \underbrace{v_1^T v_1}_{=1} = \mu\) 再由 \(\lambda_1\) 的定義 \(v_1^T A v_1 = \lambda_1\)，得 \(\mu = \lambda_1\)</li> </ol> <p><strong>得到</strong>：\((\lambda_1, v_1)\) 是 eigenpair，而且 \(\lambda_1\) 是所有 eigenvalue 中<strong>最大</strong>的 (因為 \(v_1\) 是 global max)</p> <hr> <p><strong>Step 2. 把搜尋範圍縮到 \(v_1^\perp\)，重做一次變分 → \((\lambda_2, v_2)\)</strong></p> <p>已經拿到 \(v_1\)，現在要第二個正交於 \(v_1\) 的 eigenvector。自然的做法：把最佳化限制在 \(v_1\) 的正交補上。</p> <ol> <li>新的可行集：\(S_2 = \{x \in \mathbb{R}^n : \Vert x\Vert =1,\ v_1^T x = 0\}\) <ul> <li>這是 \(\mathbb{R}^n\) 的 \((n-1)\) 維單位球面，仍是緊緻</li> </ul> </li> <li>由 Weierstrass，\(x^T A x\) 在 \(S_2\) 上達到最大值 \(\lambda_2\)，最大點 \(v_2\)</li> <li>Lagrangian 多了一個約束、多一個乘子： \(\mathcal{L}(x, \mu, \alpha_1) = x^T A x - \mu\,(x^T x - 1) - \alpha_1\, v_1^T x\)</li> <li>First-order condition: \(2 A x - 2\mu x - \alpha_1 v_1 = 0 \quad(\star)\)</li> <li> <strong>關鍵：證明 \(\alpha_1 = 0\)</strong> , 這樣 \((\star)\) 才會退化成 \(A x = \mu x\) 用 \(v_1^T\) 左乘 \((\star)\)： \(2\, v_1^T A x - 2\mu\, \underbrace{v_1^T x}_{=0\text{ (約束)} } - \alpha_1\, \underbrace{v_1^T v_1}_{=1} = 0\) 其中第一項可由對稱性翻邊： \(v_1^T A x \stackrel{A=A^T}{=} (A^T v_1)^T x = (A v_1)^T x = \lambda_1\, \underbrace{v_1^T x}_{=0} = 0\) <ul> <li>==這步仰賴 \(A^T = A\)==：把 \(A\) 從「\(x\) 那邊」搬到「\(v_1\) 那邊」吃掉 \(A v_1 = \lambda_1 v_1\)，再用 \(v_1 \perp x\) 湊成零</li> <li>若 \(A\) 非對稱，\(A^T v_1 \neq \lambda_1 v_1\)，這邊就歸不了零，Lagrange 乘子法直接崩掉</li> </ul> </li> <li>所以 \(\alpha_1 = 0\)，\((\star)\) 變成 \(A v_2 = \mu v_2\)，而且 \(v_2 \perp v_1\)、\(\Vert v_2\Vert =1\)、\(\mu = \lambda_2\)</li> </ol> <hr> <p><strong>Step 3. 一般化到第 \(k\) 個 eigenvector</strong></p> <p>同樣的邏輯重複：假設已得 \(v_1, \ldots, v_{k-1}\) 兩兩正交、皆為單位 eigenvector，對應 \(\lambda_1 \geq \cdots \geq \lambda_{k-1}\)。</p> <ol> <li>可行集 \(S_k = \{x : \Vert x\Vert =1,\ x \perp v_1, \ldots, v_{k-1}\}\) 是 \((n-k)\) 維單位球面，仍緊緻</li> <li>\(\lambda_k := \max_{x \in S_k} x^T A x\) 存在，記最大點為 \(v_k\)</li> <li>Lagrangian: \(\mathcal{L} = x^T A x - \mu(x^T x - 1) - \sum_{j=1}^{k-1} \alpha_j\, v_j^T x\)</li> <li>First-order condition: \(2 A x - 2\mu x - \sum_{j=1}^{k-1} \alpha_j v_j = 0 \quad(\star\star)\)</li> <li>對每個 \(j &lt; k\)，用 \(v_j^T\) 左乘 \((\star\star)\)： \(2\, \underbrace{v_j^T A x}_{= \lambda_j v_j^T x = 0} - 2\mu\, \underbrace{v_j^T x}_{=0} - \alpha_j\, \underbrace{v_j^T v_j}_{=1} - \sum_{i\neq j} \alpha_i \underbrace{v_j^T v_i}_{=0} = 0\) <ul> <li>第一項用對稱性翻邊：\(v_j^T A x = (A v_j)^T x = \lambda_j\, v_j^T x = 0\)</li> <li>第二項由 \(x \in S_k\) 的正交約束直接為 \(0\)</li> <li>第四項由歸納假設 \(v_j \perp v_i\) 為 \(0\)</li> <li>剩下 \(\alpha_j = 0\)</li> </ul> </li> <li>所有 \(\alpha_j\) 全為 \(0\)，\((\star\star)\) 退化成 \(A v_k = \mu v_k\)，所以 \(v_k\) 是 eigenvector，\(\mu = \lambda_k\)</li> </ol> <hr> <p><strong>Step 4. 這個流程能走足 \(n\) 次</strong></p> <ul> <li>第 \(k\) 次的可行集 \(S_k\) 是 \((n-k)\) 維單位球面</li> <li>\(k=1\): \((n-1)\) 維，有無窮多點；\(k=n-1\): \(1\) 維圓；\(k=n\): \(0\) 維球面，就是 \(\{\pm v_n\}\) 兩個點 , 仍非空</li> <li>所以可以連續取到 \(v_1, v_2, \ldots, v_n\) 共 \(n\) 個兩兩正交的單位特徵向量 ∎</li> </ul> <hr> <p><strong>核心直覺</strong></p> <ul> <li>變分觀點的精髓：<strong>每個 eigenvalue = \(x^T A x\) 在某層子空間上的極值</strong>，每個 eigenvector = 實現那個極值的方向。這就是 PCA「第 \(k\) 主成分 = 前 \(k-1\) 主成分正交補上的最大散度方向」的直接來源</li> <li>對稱性 \(A^T = A\) 在證明裡只出現兩處、但都不可或缺： <ol> <li>\(\nabla(x^T A x) = 2 A x\) (讓 Lagrange 條件直接變成 \(Ax = \mu x\))</li> <li>\(v_j^T A x = (A v_j)^T x = \lambda_j v_j^T x\) (讓正交約束的乘子 \(\alpha_j\) 全歸零)</li> </ol> </li> <li>不需要代數基本定理，改用<strong>緊緻性 + 連續性</strong>保證極值存在 , 這正是譜定理可以推廣到 infinite-dim Hilbert space 上 compact self-adjoint operator 的通道</li> </ul> <p><strong>結論</strong>：存在正交矩陣 \(Q = [v_1, \ldots, v_n]\)（\(Q^T Q = I\)）與對角矩陣 \(\Lambda = \operatorname{diag}(\lambda_1, \ldots, \lambda_n)\) (且 \(\lambda_1 \geq \lambda_2 \geq \cdots \geq \lambda_n\))，使得 \(A = Q \Lambda Q^T \qquad \blacksquare\)</p> <hr> <h3 id="what-is-definite">What is Definite</h3> <h6 id="只對-symmetric-or-hermitian-矩陣討論">只對 Symmetric (or Hermitian) 矩陣討論</h6> <ul> <li>只對 symmetric 討論的原因: 任何方陣 \(M\) 都可以拆成以下兩個 term \(M = \underbrace{\tfrac{1}{2}(M+M^T)}_{S \text{ (symmetric)} } + \underbrace{\tfrac{1}{2}(M-M^T)}_{K \text{ (skew-symmetric)} }\)</li> <li>其中 skew-symmetric 部分對 \(x^T M x\) 沒有貢獻，所以 quadratic form 的資訊<strong>完全</strong>藏在對稱部分 <ul> <li>skew-symmetric: \(K^T = -K\) (且對角線沒有值)</li> <li>quadratic from is a scaler 所以 scaler tranpose 後不變</li> <li> \[x^T K x = (x^T K x)^T = x^T K^T x = -x^T K x \implies x^T K x = 0\] </li> <li>又因為自己等自己的加負號，所以就只能 = 0</li> </ul> </li> <li>對稱矩陣 \(A\) 配上一個向量 \(x\)，可以定義 <strong>quadratic form (二次型)</strong> \(Q(x) = x^T A x = \sum_{i,j} a_{ij}\, x_i x_j\) <h6 id="各種-definite-的分類">各種 definite 的分類</h6> </li> </ul> <table> <thead> <tr> <th>名稱</th> <th>條件</th> <th>eigenvalue</th> </tr> </thead> <tbody> <tr> <td>Positive Definite</td> <td>\(x^T A x &gt; 0\) \(,\forall\) \(x \neq 0\)</td> <td>全部 \(\lambda_i &gt; 0\)</td> </tr> <tr> <td>Positive Semi-Definite<br>(non-negative definite)</td> <td>\(x^T A x \geq 0\) \(,\forall\) \(x\)</td> <td>全部 \(\lambda_i \geq 0\)</td> </tr> <tr> <td>Negative Definite</td> <td>\(x^T A x &lt; 0\) \(,\forall\) \(x \neq 0\)</td> <td>全部 \(\lambda_i &lt; 0\)</td> </tr> <tr> <td>Negative Semi-Definite (NSD)</td> <td>\(x^T A x \leq 0\) \(,\forall\) \(x\)</td> <td>全部 \(\lambda_i \leq 0\)</td> </tr> <tr> <td>Indefinite</td> <td>既能為正也能為負</td> <td>有正有負</td> </tr> </tbody> </table> <h5 id="為什麼決定-definite-條件和-eigenvalue-等價">為什麼決定 definite 條件和 eigenvalue 等價</h5> <ul> <li>因為是對稱矩陣所以可以對角化 \(A = Q\Lambda Q^T\)，令 \(y = Q^T x\) (換坐標系，因為 Q 是 orthonormal matrix)，則 \(x^T A x = x^T (Q\Lambda Q) x= (x^TQ) \Lambda (Q^Tx)= y^T \Lambda y = \sum_i \lambda_i y_i^2\) 這個式子的正負完全由 \(\lambda_i\) 的正負決定，也代表如果 \(A\) 是 p.d. \(\implies\) quadratic form &gt; 0 ，所有的 eigen value &gt; 0</li> </ul> <h6 id="幾何意義看-level-set-x--xt-a-x--c">幾何意義：看 level set \(\{x : x^T A x = c\}\)</h6> <p><img src="/assets/notes/mva-prerequisite/Pasted-image-20260418180910.png" alt="Pasted image 20260418180910" loading="lazy" style="max-width: 100%; height: auto;"></p> <table> <thead> <tr> <th>Type</th> <th>Optimization meaning</th> <th>Origin is</th> <th>Shape</th> </tr> </thead> <tbody> <tr> <td>Positive def.</td> <td>strictly convex, unique minimizer</td> <td>strict min</td> <td>bowl</td> </tr> <tr> <td>Negative def.</td> <td>strictly concave, unique maximizer</td> <td>strict max</td> <td>inverted bowl</td> </tr> <tr> <td>Singular &amp; PSD</td> <td>convex but not strict, minimizer not unique</td> <td>min along a whole line</td> <td>valley</td> </tr> <tr> <td>Indefinite</td> <td>neither convex nor concave</td> <td>saddle point</td> <td>saddle</td> </tr> </tbody> </table> <p>MVA - week 1, 第 5 頁 若一個矩陣 = p.d.</p> <ul> <li>\(\iff\) 代表該矩陣為對稱且 quadratic form &gt; 0</li> <li>\(\implies\) 該矩陣之 eigen value &gt; 0</li> </ul> <h3 id="matrix-operation">Matrix Operation</h3> <blockquote> <p>\(\text{Cov}(AX) = A\,\text{Cov}(X)\,A^\top\) if \(A\) is a non-random (deterministic) matrix MVA - week 1, 第 10 頁</p> <p>Given constant matrices A and B, we have \(Cov(AX , BY ) = A Cov(X , Y )B^⊤\) MVA - week 1, 第 12 頁</p> </blockquote> <ol> <li>Let \(\mu_X = E[X]\), \(\mu_Y = E[Y]\), then \(E[AX] = A\mu_X\) and \(E[BY] = B\mu_Y\)</li> <li> \[\text{Cov}(AX, BY) = E[(AX - A\mu_X)(BY - B\mu_Y)^\top] = E[A(X-\mu_X)(Y-\mu_Y)^\top B^\top]\] </li> <li> \[= A\,E[(X-\mu_X)(Y-\mu_Y)^\top]\,B^\top = A\,\text{Cov}(X,Y)\,B^\top\] </li> </ol> <blockquote> <p>Corr(X ) = diag( 1 √σ11 , . . . , 1 √σpp ) × Cov(X ) × diag( 1 √σ11 , . . . , 1 √σpp ) MVA - week 1, 第 11 頁</p> </blockquote> <p>剩下還沒看完先去看 PCA and FA #unsolved</p> </article> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Chia-Fan Chu. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/assets/al_math/js/mathjax-setup.js"></script> <script defer src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6" crossorigin="anonymous"></script> <script src="/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/assets/al_img_tools/js/zoom.js"></script> <script defer src="/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-about",
+    title: "about",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/";
+    },
+  },{id: "nav-cv",
+          title: "CV",
+          description: "Education, experience, publications, and skills.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/cv/";
+          },
+        },{id: "nav-shared-notes",
+          title: "shared notes",
+          description: "Notes I keep while reading papers and working through courses. Shared as-is; most are living documents, so expect a few rough edges.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/notes/";
+          },
+        },{id: "notes-mastering-the-game-of-go-without-human-knowledge",
+          title: 'Mastering the Game of Go without Human Knowledge',
+          description: "PUCT math and why MCTS acts as a policy improvement operator.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/alphago-zero/";
+            },},{id: "notes-curriculum-learning-for-reinforcement-learning-domains-a-framework-and-survey",
+          title: 'Curriculum Learning for Reinforcement Learning Domains: A Framework and Survey',
+          description: "Section-by-section summary of the curriculum learning framework and its design dimensions.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-rl-survey/";
+            },},{id: "notes-a-survey-on-curriculum-learning",
+          title: 'A Survey on Curriculum Learning',
+          description: "Predefined vs automatic curricula and self-paced learning, summarized.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-survey/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-dual-attention-network-based-reinforcement-learning",
+          title: 'Flexible Job Shop Scheduling via Dual Attention Network-Based Reinforcement Learning',
+          description: "Dual-attention method with the math spelled out, plus a note on a missing ablation.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/daniel-dual-attention/";
+            },},{id: "notes-deep-reinforcement-learning-for-dynamic-scheduling-of-a-flexible-job-shop",
+          title: 'Deep Reinforcement Learning for Dynamic Scheduling of a Flexible Job Shop',
+          description: "MDP breakdown plus my comparison tables against related dynamic-scheduling designs.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-dynamic-fjs/";
+            },},{id: "notes-challenges-and-opportunities-in-deep-reinforcement-learning-with-graph-neural-networks",
+          title: 'Challenges and Opportunities in Deep Reinforcement Learning with Graph Neural Networks',
+          description: "Review of how DRL and GNNs combine, and where the open challenges are.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-gnn-review/";
+            },},{id: "notes-deep-rl-for-machine-scheduling-methodology-state-of-the-art-and-future-directions",
+          title: 'Deep RL for Machine Scheduling: Methodology, State of the Art, and Future Directions...',
+          description: "Taxonomy of state, action, and reward designs across the machine-scheduling literature.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-machine-scheduling-survey/";
+            },},{id: "notes-feudal-networks-for-hierarchical-reinforcement-learning",
+          title: 'FeUdal Networks for Hierarchical Reinforcement Learning',
+          description: "Manager/Worker architecture, transition policy gradient, and ablations explained.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/feudal-networks/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-graph-neural-network-and-deep-reinforcement-learning",
+          title: 'Flexible Job-Shop Scheduling via Graph Neural Network and Deep Reinforcement Learning',
+          description: "Detailed method and experiment summary of a key heterogeneous-graph baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-gnn-drl/";
+            },},{id: "notes-the-flexible-job-shop-scheduling-problem-a-review",
+          title: 'The Flexible Job Shop Scheduling Problem: A Review',
+          description: "Schedule classes, problem variants, and solution families, connected back to RL.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-review/";
+            },},{id: "notes-heterogeneous-graph-transformer",
+          title: 'Heterogeneous Graph Transformer',
+          description: "Mutual attention, message passing, and relative temporal encoding, with a worked example.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/heterogeneous-graph-transformer/";
+            },},{id: "notes-knowledge-enabled-multi-agent-drl-for-batch-machine-scheduling-in-semiconductor-fabrication",
+          title: 'Knowledge-enabled Multi-agent DRL for Batch Machine Scheduling in Semiconductor Fabrication',
+          description: "IRL plus MADRL pipeline, reward design, and my critique of it.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/knowledge-madrl-semiconductor/";
+            },},{id: "notes-list-scheduling-and-beam-search-methods-for-the-fjsp-with-sequencing-flexibility",
+          title: 'List Scheduling and Beam Search Methods for the FJSP with Sequencing Flexibility',
+          description: "Problem, method, and results of a strong non-learning FJSP baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/list-scheduling-beam-search-fjsp/";
+            },},{id: "notes-monte-carlo-tree-search-a-review-of-recent-modifications-and-applications",
+          title: 'Monte Carlo Tree Search: A Review of Recent Modifications and Applications',
+          description: "Survey walkthrough of the MCTS phases and variants, with my notes on relevance to scheduling.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mcts-review/";
+            },},{id: "notes-ch-0-introduction",
+          title: 'Ch 0 Introduction',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch0-introduction/";
+            },},{id: "notes-ch-1-traditional-machine-learning-on-graphs",
+          title: 'Ch 1 Traditional Machine Learning on Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch1-traditional-ml-on-graphs/";
+            },},{id: "notes-ch-10-11-15-knowledge-graph",
+          title: 'Ch 10, 11, 15 Knowledge Graph',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch10-11-15-knowledge-graph/";
+            },},{id: "notes-ch-12-gnns-for-recommender-systems",
+          title: 'Ch 12 GNNs for Recommender Systems',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch12-gnns-for-recommender-systems/";
+            },},{id: "notes-ch-14-advanced-topics-in-graph-neural-networks",
+          title: 'Ch 14 Advanced Topics in Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch14-advanced-topics/";
+            },},{id: "notes-ch-16-deep-generative-models-for-graphs",
+          title: 'Ch 16 Deep Generative Models for Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch16-deep-generative-models/";
+            },},{id: "notes-ch-17-geometric-graph-learning",
+          title: 'Ch 17 Geometric Graph Learning',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch17-geometric-graph-learning/";
+            },},{id: "notes-ch-19-label-propagation",
+          title: 'Ch 19 Label Propagation',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch19-label-propagation/";
+            },},{id: "notes-ch-2-node-embedding",
+          title: 'Ch 2 Node Embedding',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch2-node-embedding/";
+            },},{id: "notes-ch-20-scaling-up-gnns",
+          title: 'Ch 20 Scaling Up GNNs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch20-scaling-up-gnns/";
+            },},{id: "notes-ch-21-trustworthy-graph-ai",
+          title: 'Ch 21 Trustworthy Graph AI',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch21-trustworthy-graph-ai/";
+            },},{id: "notes-ch-3-graph-neural-networks",
+          title: 'Ch 3 Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch3-graph-neural-networks/";
+            },},{id: "notes-ch-4-a-general-perspective-on-graph-neural-networks",
+          title: 'Ch 4 A General Perspective on Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch4-general-perspective-on-gnn/";
+            },},{id: "notes-ch-5-gnn-augmentation-and-training",
+          title: 'Ch 5 GNN Augmentation and Training',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch5-gnn-augmentation-and-training/";
+            },},{id: "notes-ch-6-theory-of-graph-neural-networks",
+          title: 'Ch 6 Theory of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch6-theory-of-gnns/";
+            },},{id: "notes-ch-7-limits-of-graph-neural-networks",
+          title: 'Ch 7 Limits of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch7-limits-of-gnns/";
+            },},{id: "notes-ch-8-graph-transformers",
+          title: 'Ch 8 Graph Transformers',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch8-graph-transformers/";
+            },},{id: "notes-ch-9-machine-learning-with-heterogeneous-graphs",
+          title: 'Ch 9 Machine Learning with Heterogeneous Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch9-heterogeneous-graphs/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map plus my conclusions on how to design and train a GNN.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-overview/";
+            },},{id: "notes-clustering-method",
+          title: 'Clustering Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-clustering-method/";
+            },},{id: "notes-factor-analysis",
+          title: 'Factor Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-factor-analysis/";
+            },},{id: "notes-prerequisite",
+          title: 'Prerequisite',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-prerequisite/";
+            },},{id: "notes-principal-component-analysis",
+          title: 'Principal Component Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-principal-component-analysis/";
+            },},{id: "notes-ch-14-general-purpose-procedures-for-deterministic-scheduling",
+          title: 'Ch 14 General Purpose Procedures for Deterministic Scheduling',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch14-general-purpose-procedures/";
+            },},{id: "notes-ch-15-more-advance-general-purpose-procedures",
+          title: 'Ch 15 More Advance General Purpose Procedures',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch15-more-advance-general-purpose-procedures/";
+            },},{id: "notes-ch-16-modeling-and-solving-scheduling-problems-in-practice",
+          title: 'Ch 16 Modeling and Solving Scheduling Problems in Practice',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch16-modeling-and-solving-scheduling-problems/";
+            },},{id: "notes-ch-2-deterministic-models-preliminaries",
+          title: 'Ch 2 Deterministic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch2-deterministic-models-preliminaries/";
+            },},{id: "notes-ch-3-single-machine-method",
+          title: 'Ch 3 Single Machine Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch3-single-machine-method/";
+            },},{id: "notes-ch-4-advance-single-machine",
+          title: 'Ch 4 Advance Single Machine',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch4-advance-single-machine/";
+            },},{id: "notes-ch-5-parallel-machine-model",
+          title: 'Ch 5 Parallel Machine Model',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch5-parallel-machine-model/";
+            },},{id: "notes-ch-6-flow-shop",
+          title: 'Ch 6 Flow Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch6-flow-shop/";
+            },},{id: "notes-ch-7-job-shop",
+          title: 'Ch 7 Job Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch7-job-shop/";
+            },},{id: "notes-ch-8-open-shop",
+          title: 'Ch 8 Open Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch8-open-shop/";
+            },},{id: "notes-ch-9-stochastic-models-preliminaries",
+          title: 'Ch 9 Stochastic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch9-stochastic-models-preliminaries/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map: which chapters are covered and how they fit together.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-overview/";
+            },},{id: "notes-real-time-scheduling-for-dynamic-partial-no-wait-multiobjective-flexible-job-shop-by-drl",
+          title: 'Real-Time Scheduling for Dynamic Partial-No-Wait Multiobjective Flexible Job Shop by DRL',
+          description: "Hierarchical multi-agent MDP with rule tables and Pareto metrics.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/realtime-partial-no-wait-fjs/";
+            },},{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%6F%6B%75%6D%6F%63%68%75%35%35@%67%6D%61%69%6C.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-github',
+        title: 'GitHub',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://github.com/okumochu", "_blank");
+        },
+      },{
+        id: 'social-linkedin',
+        title: 'LinkedIn',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.linkedin.com/in/chia-fan-chu", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=BfaixEUAAAAJ", "_blank");
+        },
+      },];
+
+</script> <script src="/assets/al_search/js/shortcut-key.js"></script> </body> </html>

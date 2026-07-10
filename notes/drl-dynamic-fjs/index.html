@@ -1,0 +1,317 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Deep Reinforcement Learning for Dynamic Scheduling of a Flexible Job Shop | Chia-Fan Chu </title> <meta name="author" content="Chia-Fan Chu"> <meta name="description" content="MDP breakdown plus my comparison tables against related dynamic-scheduling designs."> <meta name="keywords" content="chia-fan chu, reinforcement learning, scheduling, operations research, national taiwan university"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;%E2%9A%9B%EF%B8%8F&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/assets/css/main.css?v=f0b101217084a90093badfe99ff9a7d1"> <link rel="canonical" href="https://okumochu.github.io/notes/drl-dynamic-fjs/"> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/"> <span class="font-weight-bold">Chia-Fan</span> Chu </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/cv/">CV </a> </li> <li class="nav-item active"> <a class="nav-link" href="/notes/">shared notes <span class="sr-only">(current)</span> </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title">Deep Reinforcement Learning for Dynamic Scheduling of a Flexible Job Shop</h1> <p class="post-description">MDP breakdown plus my comparison tables against related dynamic-scheduling designs.</p> </header> <article> <p>https://github.com/RK0731/Deep-reinforcement-learning-for-dynamic-scheduling-of-a-flexible-job-shop?tab=readme-ov-file</p> <p>本篇研究的方法是使用模擬的方式來訓練以及 evaluation。本篇研究的架構是不存在把 job 排完，而是設定一個模擬的時間，也代表只要一直有工作 arrive 他就能根據每個 machine 以及 排上去以及沒排上去的 job 的統計數據:</p> <ol> <li>new job arrival 時，選擇一個 dispatching rule 選一個 job 到一個 machine 的 queue 上 (此時還沒排上去)</li> <li>operation finished 時，選擇在該 machine 上下一個應該進行的 operation</li> </ol> <p>最終希望能 Minimizing Tardiness</p> <h2 id="motivation">Motivation</h2> <ul> <li>前面就講到說為什麼會有 dynamic events，並且我們為什麼要應對 dynamic envet。應對的方式有三種 proactive / predictive reactive / reactive</li> <li>通常會用 priority rule (reactive) ，並且通常為了因應多目標會用 composite priority rule。然後各種 Meta-heuristic 方法都是用 proactive 的方法因為用 reactive 實在太花時間了</li> <li>過去在處理的 dynamic events 通常都是 machine breakdown)。那如果非要 reschedule 的話，就會在 dynamic events 發生的時候用最快的速度把被影響到的排程做快速修復 i.e. priority rule</li> <li>剛剛提到的方法就是他們會有一個收斂的過程使其造成 efficiency vs quality 的 trade-off。為了要快的並且更好的利用 shop floow information 排出好的排程，我們會使用 Genetic Programming、supervised learning、Reinforcement Learning <ul> <li>GP 使用來開發 dispathching rule 的 (找出一個 dispatching rule 會最小化 symbolic regression error、clasification accuracy、control policy performance 之類的)</li> <li>ANN (supervised-learning) 通常是用在選擇 priority rule (沒有細看是怎麼做的，但是他說 The NN parameters are determined through simulation optimization)</li> </ul> </li> </ul> <blockquote> <p><strong>Note</strong> This research adopts the most general context – flexible job shop for better transferability and comparability</p> </blockquote> <h2 id="methodology">Methodology</h2> <h3 id="state">State</h3> <p>本研究有要解決 fixed size 的問題的，在 state representation 上選則了統計的方式來統一表示，而不是選擇一個 job 一個 job 來表示</p> <blockquote> <p><strong>Note</strong> 這邊要注意，job 的數量可以不用 fixed size 沒有關係，但是 machine 的數量要 fixed，直接看下面的 information of machine 就知道了。如果 machine 數量變了就一定要重新 train RA</p> </blockquote> <p><img src="/assets/notes/drl-dynamic-fjs/image.png" alt="image" loading="lazy" style="max-width: 100%; height: auto;"></p> <p><img src="/assets/notes/drl-dynamic-fjs/image-1.png" alt="image 1" loading="lazy" style="max-width: 100%; height: auto;"></p> <h3 id="action">Action</h3> <p>Routing Agent 會從下面的四個 dispatching rule 選一個出來用</p> <ul> <li> <strong>Shortest Processing Time (SPT)</strong>: select the job with shortest processing time of imminent operation.</li> <li> <strong>Work in Queue (WINQ)</strong>: select the job with the smallest sum of processing time of queuing jobs in its succeeding stage of production. WINQ rule tends to even the distribution of jobs in the system. <ul> <li>簡單來說就是看一在還沒排的工作裡面，假設排上去要等多久才做。挑那個最不用等的 (平衡 machine utilization)</li> </ul> </li> <li> <strong>Critical Ratio (CR)</strong>: select the job with smallest ratio of TTD to remaining processing time. A disadvantage of CR rule is its inconsistency. When available jobs are not yet tardy, CR rule favors jobs with smaller TTD and longer remaining processing time. On the other hand, if available jobs are already tardy, CR rule prioritizes the job with highest overdue time (smallest TTD) and shortest remaining processing time. <ul> <li> \[\frac{\text{Time Til Due} }{\text{Remaining Process Time} }\] </li> </ul> </li> <li> <strong>Minimum Slack (MS)</strong>: select the job with smallest slack time. This rule behaves like CR rule if jobs are not yet overdue, favoring jobs with shorter TTD and longer remaining processing time (shorter slack time as a result) and remains consistent when the job becomes tardy.</li> </ul> <h3 id="reward">Reward</h3> <p>本篇研究提到 reward 可能會有兩個問題</p> <ol> <li>multi-agent 都用相同的 reward 來訓練是沒有問題的，但是這樣當reward 變大就無法判斷是哪個 agent 的貢獻。這也被稱為 multi-agent credit assignment problem</li> <li>有可能會有 bias on different scenario 像是如果是 SPT rule 可以在很多很趕的工作的 arrive 的時候快速減少 tardy job 和 tardiness，但是犧牲的就是 maximum tardiness。也就是說這個 signal 要<strong>能真正 optimize primary objective value</strong>，不然 agent 就會學歪一直去吃 shaped reward</li> </ol> <p>所以本研究特別設計 shaped reward 給兩個不同的 agent，然後主要是用能<strong>保有或是消耗多少 slack time</strong> 作為 reward shaping 的設計主軸，同時這個值會乘上一個權重，這個權重是估計 preserve slack time 的難度</p> <p><strong>Routing Agent</strong></p> <ul> <li>difficulty weight \(\times\) (real slack time \(-\) expected slack time) <ul> <li>expected slack time 的計算方式就是先看選訂的 job 還有多少時間可以加工 \(-\) 剩餘的工作時間 \(-\) 平均機器等待時間 (要排隊)</li> <li>直觀來看就是 slack time 比期望來說好了多少</li> </ul> </li> </ul> <p><strong>Sequencing Agent</strong></p> <ul> <li>選擇的 operation 消耗的 slack time \(-\) 因為這個 operation 被選消耗的 slack time <ul> <li>直觀來說就是這次選擇要做的 operation 是否對整個系統的 slack 有幫助 (正的就是有幫助)</li> </ul> </li> </ul> <h3 id="asynchronous-transition">Asynchronous transition</h3> <p>這個兩個 RL agent 都是 event trigger 並且是不同的 event，所以他們並不會一起同時 take action</p> <p><img src="/assets/notes/drl-dynamic-fjs/image-2.png" alt="image 2" loading="lazy" style="max-width: 100%; height: auto;"></p> <h2 id="experiment">Experiment</h2> <p>The experiments are entirely <strong>simulation-based</strong> (SimPy). There is no real dataset; both training and evaluation run on the authors’ own dynamic FJSP simulator. The campaign is structured into three escalating stages: (1) Independent utility test, (2) Validation of integrated DRL, (3) Scalability test.</p> <h3 id="configuration">Configuration</h3> <ul> <li>Each simulation episode lasts <strong>100,000 time units</strong>, during which roughly <strong>12,400 jobs arrive</strong> (Poisson stream, non-terminating simulation).</li> <li>Base shop has <strong>2 machines</strong> with a fixed number of operations per job.</li> <li>Four scenario combinations from a \(2^2\) design are evaluated independently: <ul> <li>Process-time variability: <strong>high vs. low</strong> </li> <li>Due-date tightness: <strong>tight vs. loose</strong> </li> </ul> </li> <li>To mitigate <strong>multi-agent non-stationarity</strong>, the two agents are trained in an <strong>alternating</strong> fashion: when one agent is being updated, the other is <strong>frozen</strong>.</li> <li>All input features go through <strong>layer (instance) normalization</strong> to stabilize training.</li> <li> <p>DRL / ANN hyperparameters and network architectures: <img src="/assets/notes/drl-dynamic-fjs/image-3.png" alt="image 3" loading="lazy" style="max-width: 100%; height: auto;"> <img src="/assets/notes/drl-dynamic-fjs/image-4.png" alt="image 4" loading="lazy" style="max-width: 100%; height: auto;"></p> </li> <li>Overall simulation-and-training procedure (alternating training of RA and SA on top of a shared production simulator): <img src="/assets/notes/drl-dynamic-fjs/image-5.png" alt="image 5" loading="lazy" style="max-width: 100%; height: auto;"> </li> </ul> <h3 id="independent-utility-test">Independent utility test</h3> <blockquote> <p><strong>Note</strong> RA and SA are <strong>validated separately first</strong> to confirm that each component delivers a benefit on its own, before combining them.</p> </blockquote> <p>Two metrics are reported:</p> <ol> <li> <strong>% improvement</strong>: improvement in tardiness over a chosen baseline rule (used as denominator).</li> <li> <strong>Win rate</strong>: fraction of replications in which the proposed agent beats the baseline.</li> </ol> <ul> <li> <strong>RA + FIFO vs. each routing rule + FIFO</strong> (sequencing held constant at FIFO so routing differences are isolated) <ul> <li>Benchmark routing rules: <img src="/assets/notes/drl-dynamic-fjs/image-6.png" alt="image 6" loading="lazy" style="max-width: 100%; height: auto;"> </li> <li>Finding: as process-time variability grows, RA’s advantage becomes larger, because routing decisions have more leverage when machines differ more.</li> </ul> </li> <li> <strong>Earliest Available (EA) + SA vs. EA + each sequencing rule</strong> (routing held constant at EA so sequencing differences are isolated) <ul> <li>Benchmark sequencing rules: <img src="/assets/notes/drl-dynamic-fjs/image-7.png" alt="image 7" loading="lazy" style="max-width: 100%; height: auto;"> </li> <li>Finding: SA wins on average, fixed dispatching rules do not generalize well across the four scenario combinations.</li> </ul> </li> </ul> <h3 id="validation-of-integrated-drl">Validation of integrated DRL</h3> <blockquote> <p><strong>Note</strong> RA and SA are deployed <strong>together</strong>. To assess synergy, the half-versions <strong>RA + FIFO</strong> and <strong>EA + SA</strong> are also benchmarked alongside the full <strong>RA + SA</strong> combination.</p> </blockquote> <p><strong>Baselines:</strong></p> <ol> <li>Top-2 routing rules \(\times\) top-5 sequencing rules (= 10 hand-crafted combinations).</li> <li>Two composite rules produced by <strong>Genetic Programming</strong>.</li> <li> <p>Two prior <strong>DRL</strong> methods:</p> <blockquote> <p>Lang, S., Behrendt, F., Lanzerath, N., Reggelin, T., &amp; Müller, M. (2020). Integration of deep reinforcement learning and discrete-event simulation for real-time scheduling of a flexible job shop production. <em>2020 Winter Simulation Conference (WSC)</em>, 3057–3068.</p> </blockquote> <blockquote> <p>Luo, S. (2020). Dynamic scheduling for flexible job shop with new job insertions by deep reinforcement learning. <em>Applied Soft Computing, 91</em>, 106208.</p> </blockquote> <table> <thead> <tr> <th>Element</th> <th>Lang et al. (2020)</th> <th>Luo (2020)</th> </tr> </thead> <tbody> <tr> <td><strong>Problem setting</strong></td> <td>Static FJSP (all jobs known up front)</td> <td>Dynamic FJSP (random job insertions)</td> </tr> <tr> <td><strong>Agents</strong></td> <td>2 (sequencing + machine assignment)</td> <td>1 (composite rule selector)</td> </tr> <tr> <td><strong>State design</strong></td> <td>“Machine buffer workload” + LSTM operation-sequence representation</td> <td>7 scaled generic features + statistical aggregation</td> </tr> <tr> <td><strong>Action space</strong></td> <td>Directly outputs Machine ID or Sequence ID</td> <td>Selects from 6 composite dispatching rules</td> </tr> <tr> <td><strong>Reward</strong></td> <td>Local buffer/earliness reward + terminal \(-(C_{\max}+T)\)</td> <td>Slack-difference local reward + terminal \(-\text{Total Tardiness}\)</td> </tr> </tbody> </table> </li> </ol> <blockquote> <p><strong>Note</strong> Meta-heuristics (GA etc.) are <strong>excluded</strong> from comparison because they are too slow to reschedule in real time under dynamic events.</p> </blockquote> <p><strong>Conclusions of this stage:</strong></p> <ul> <li>RA + SA <strong>outperforms</strong> every baseline category.</li> <li>The half-versions (RA + FIFO, EA + SA) lose to the full version, confirming a true <strong>synergy</strong>: both agents are needed.</li> <li> <strong>Routing contributes more than sequencing</strong> to the overall gain (likely because once routing is decided, the sequencing search space is already constrained).</li> </ul> <h3 id="scalability">Scalability</h3> <p>Two orthogonal stress tests are performed.</p> <ul> <li> <strong>Higher-flexibility test</strong>: vary the number of machines. <ul> <li>Increase machines from 2 to <strong>3 and 4</strong>.</li> <li>Because RA’s input dimension depends on the number of machines, <strong>RA is retrained</strong> with a larger input; <strong>SA is reused as-is</strong> (its statistical features are size-insensitive).</li> <li>Finding: as the shop becomes more flexible, tardiness improvement grows, but <strong>win rate drops</strong>. The authors attribute the drop to the relative <strong>change in job arrival rate</strong> (more machines without proportionally more arrivals), not to a weakness of the method.</li> </ul> </li> <li> <strong>Longer-sequence test</strong>: vary the number of operations per job. <ul> <li>Increase operation count to <strong>6 and 9</strong>.</li> <li> <strong>SA is retrained</strong> (its input depends on sequence length); <strong>RA is reused as-is</strong>.</li> <li>Finding: the proposed method’s advantage does <strong>not</strong> grow much with longer sequences, indicating that the sequencing approach is <strong>size-insensitive</strong>, consistent with the classic observation in: <ul> <li>Holthaus, O., &amp; Rajendran, C. (1997). Efficient dispatching rules for scheduling in a job shop. <em>International Journal of Production Economics, 48</em>(1), 87–105.</li> </ul> </li> </ul> </li> </ul> <p><img src="/assets/notes/drl-dynamic-fjs/Pasted-image-20260425154644.png" alt="Pasted image 20260425154644" loading="lazy" style="max-width: 100%; height: auto;"></p> <h2 id="related-notes">Related Notes</h2> <ul> <li>Apparent Tardiness Cost (ATC) scheduling rule</li> </ul> </article> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Chia-Fan Chu. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/assets/al_math/js/mathjax-setup.js"></script> <script defer src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6" crossorigin="anonymous"></script> <script src="/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/assets/al_img_tools/js/zoom.js"></script> <script defer src="/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-about",
+    title: "about",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/";
+    },
+  },{id: "nav-cv",
+          title: "CV",
+          description: "Education, experience, publications, and skills.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/cv/";
+          },
+        },{id: "nav-shared-notes",
+          title: "shared notes",
+          description: "Notes I keep while reading papers and working through courses. Shared as-is; most are living documents, so expect a few rough edges.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/notes/";
+          },
+        },{id: "notes-mastering-the-game-of-go-without-human-knowledge",
+          title: 'Mastering the Game of Go without Human Knowledge',
+          description: "PUCT math and why MCTS acts as a policy improvement operator.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/alphago-zero/";
+            },},{id: "notes-curriculum-learning-for-reinforcement-learning-domains-a-framework-and-survey",
+          title: 'Curriculum Learning for Reinforcement Learning Domains: A Framework and Survey',
+          description: "Section-by-section summary of the curriculum learning framework and its design dimensions.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-rl-survey/";
+            },},{id: "notes-a-survey-on-curriculum-learning",
+          title: 'A Survey on Curriculum Learning',
+          description: "Predefined vs automatic curricula and self-paced learning, summarized.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-survey/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-dual-attention-network-based-reinforcement-learning",
+          title: 'Flexible Job Shop Scheduling via Dual Attention Network-Based Reinforcement Learning',
+          description: "Dual-attention method with the math spelled out, plus a note on a missing ablation.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/daniel-dual-attention/";
+            },},{id: "notes-deep-reinforcement-learning-for-dynamic-scheduling-of-a-flexible-job-shop",
+          title: 'Deep Reinforcement Learning for Dynamic Scheduling of a Flexible Job Shop',
+          description: "MDP breakdown plus my comparison tables against related dynamic-scheduling designs.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-dynamic-fjs/";
+            },},{id: "notes-challenges-and-opportunities-in-deep-reinforcement-learning-with-graph-neural-networks",
+          title: 'Challenges and Opportunities in Deep Reinforcement Learning with Graph Neural Networks',
+          description: "Review of how DRL and GNNs combine, and where the open challenges are.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-gnn-review/";
+            },},{id: "notes-deep-rl-for-machine-scheduling-methodology-state-of-the-art-and-future-directions",
+          title: 'Deep RL for Machine Scheduling: Methodology, State of the Art, and Future Directions...',
+          description: "Taxonomy of state, action, and reward designs across the machine-scheduling literature.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-machine-scheduling-survey/";
+            },},{id: "notes-feudal-networks-for-hierarchical-reinforcement-learning",
+          title: 'FeUdal Networks for Hierarchical Reinforcement Learning',
+          description: "Manager/Worker architecture, transition policy gradient, and ablations explained.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/feudal-networks/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-graph-neural-network-and-deep-reinforcement-learning",
+          title: 'Flexible Job-Shop Scheduling via Graph Neural Network and Deep Reinforcement Learning',
+          description: "Detailed method and experiment summary of a key heterogeneous-graph baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-gnn-drl/";
+            },},{id: "notes-the-flexible-job-shop-scheduling-problem-a-review",
+          title: 'The Flexible Job Shop Scheduling Problem: A Review',
+          description: "Schedule classes, problem variants, and solution families, connected back to RL.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-review/";
+            },},{id: "notes-heterogeneous-graph-transformer",
+          title: 'Heterogeneous Graph Transformer',
+          description: "Mutual attention, message passing, and relative temporal encoding, with a worked example.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/heterogeneous-graph-transformer/";
+            },},{id: "notes-knowledge-enabled-multi-agent-drl-for-batch-machine-scheduling-in-semiconductor-fabrication",
+          title: 'Knowledge-enabled Multi-agent DRL for Batch Machine Scheduling in Semiconductor Fabrication',
+          description: "IRL plus MADRL pipeline, reward design, and my critique of it.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/knowledge-madrl-semiconductor/";
+            },},{id: "notes-list-scheduling-and-beam-search-methods-for-the-fjsp-with-sequencing-flexibility",
+          title: 'List Scheduling and Beam Search Methods for the FJSP with Sequencing Flexibility',
+          description: "Problem, method, and results of a strong non-learning FJSP baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/list-scheduling-beam-search-fjsp/";
+            },},{id: "notes-monte-carlo-tree-search-a-review-of-recent-modifications-and-applications",
+          title: 'Monte Carlo Tree Search: A Review of Recent Modifications and Applications',
+          description: "Survey walkthrough of the MCTS phases and variants, with my notes on relevance to scheduling.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mcts-review/";
+            },},{id: "notes-ch-0-introduction",
+          title: 'Ch 0 Introduction',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch0-introduction/";
+            },},{id: "notes-ch-1-traditional-machine-learning-on-graphs",
+          title: 'Ch 1 Traditional Machine Learning on Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch1-traditional-ml-on-graphs/";
+            },},{id: "notes-ch-10-11-15-knowledge-graph",
+          title: 'Ch 10, 11, 15 Knowledge Graph',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch10-11-15-knowledge-graph/";
+            },},{id: "notes-ch-12-gnns-for-recommender-systems",
+          title: 'Ch 12 GNNs for Recommender Systems',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch12-gnns-for-recommender-systems/";
+            },},{id: "notes-ch-14-advanced-topics-in-graph-neural-networks",
+          title: 'Ch 14 Advanced Topics in Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch14-advanced-topics/";
+            },},{id: "notes-ch-16-deep-generative-models-for-graphs",
+          title: 'Ch 16 Deep Generative Models for Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch16-deep-generative-models/";
+            },},{id: "notes-ch-17-geometric-graph-learning",
+          title: 'Ch 17 Geometric Graph Learning',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch17-geometric-graph-learning/";
+            },},{id: "notes-ch-19-label-propagation",
+          title: 'Ch 19 Label Propagation',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch19-label-propagation/";
+            },},{id: "notes-ch-2-node-embedding",
+          title: 'Ch 2 Node Embedding',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch2-node-embedding/";
+            },},{id: "notes-ch-20-scaling-up-gnns",
+          title: 'Ch 20 Scaling Up GNNs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch20-scaling-up-gnns/";
+            },},{id: "notes-ch-21-trustworthy-graph-ai",
+          title: 'Ch 21 Trustworthy Graph AI',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch21-trustworthy-graph-ai/";
+            },},{id: "notes-ch-3-graph-neural-networks",
+          title: 'Ch 3 Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch3-graph-neural-networks/";
+            },},{id: "notes-ch-4-a-general-perspective-on-graph-neural-networks",
+          title: 'Ch 4 A General Perspective on Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch4-general-perspective-on-gnn/";
+            },},{id: "notes-ch-5-gnn-augmentation-and-training",
+          title: 'Ch 5 GNN Augmentation and Training',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch5-gnn-augmentation-and-training/";
+            },},{id: "notes-ch-6-theory-of-graph-neural-networks",
+          title: 'Ch 6 Theory of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch6-theory-of-gnns/";
+            },},{id: "notes-ch-7-limits-of-graph-neural-networks",
+          title: 'Ch 7 Limits of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch7-limits-of-gnns/";
+            },},{id: "notes-ch-8-graph-transformers",
+          title: 'Ch 8 Graph Transformers',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch8-graph-transformers/";
+            },},{id: "notes-ch-9-machine-learning-with-heterogeneous-graphs",
+          title: 'Ch 9 Machine Learning with Heterogeneous Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch9-heterogeneous-graphs/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map plus my conclusions on how to design and train a GNN.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-overview/";
+            },},{id: "notes-clustering-method",
+          title: 'Clustering Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-clustering-method/";
+            },},{id: "notes-factor-analysis",
+          title: 'Factor Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-factor-analysis/";
+            },},{id: "notes-prerequisite",
+          title: 'Prerequisite',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-prerequisite/";
+            },},{id: "notes-principal-component-analysis",
+          title: 'Principal Component Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-principal-component-analysis/";
+            },},{id: "notes-ch-14-general-purpose-procedures-for-deterministic-scheduling",
+          title: 'Ch 14 General Purpose Procedures for Deterministic Scheduling',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch14-general-purpose-procedures/";
+            },},{id: "notes-ch-15-more-advance-general-purpose-procedures",
+          title: 'Ch 15 More Advance General Purpose Procedures',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch15-more-advance-general-purpose-procedures/";
+            },},{id: "notes-ch-16-modeling-and-solving-scheduling-problems-in-practice",
+          title: 'Ch 16 Modeling and Solving Scheduling Problems in Practice',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch16-modeling-and-solving-scheduling-problems/";
+            },},{id: "notes-ch-2-deterministic-models-preliminaries",
+          title: 'Ch 2 Deterministic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch2-deterministic-models-preliminaries/";
+            },},{id: "notes-ch-3-single-machine-method",
+          title: 'Ch 3 Single Machine Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch3-single-machine-method/";
+            },},{id: "notes-ch-4-advance-single-machine",
+          title: 'Ch 4 Advance Single Machine',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch4-advance-single-machine/";
+            },},{id: "notes-ch-5-parallel-machine-model",
+          title: 'Ch 5 Parallel Machine Model',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch5-parallel-machine-model/";
+            },},{id: "notes-ch-6-flow-shop",
+          title: 'Ch 6 Flow Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch6-flow-shop/";
+            },},{id: "notes-ch-7-job-shop",
+          title: 'Ch 7 Job Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch7-job-shop/";
+            },},{id: "notes-ch-8-open-shop",
+          title: 'Ch 8 Open Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch8-open-shop/";
+            },},{id: "notes-ch-9-stochastic-models-preliminaries",
+          title: 'Ch 9 Stochastic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch9-stochastic-models-preliminaries/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map: which chapters are covered and how they fit together.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-overview/";
+            },},{id: "notes-real-time-scheduling-for-dynamic-partial-no-wait-multiobjective-flexible-job-shop-by-drl",
+          title: 'Real-Time Scheduling for Dynamic Partial-No-Wait Multiobjective Flexible Job Shop by DRL',
+          description: "Hierarchical multi-agent MDP with rule tables and Pareto metrics.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/realtime-partial-no-wait-fjs/";
+            },},{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%6F%6B%75%6D%6F%63%68%75%35%35@%67%6D%61%69%6C.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-github',
+        title: 'GitHub',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://github.com/okumochu", "_blank");
+        },
+      },{
+        id: 'social-linkedin',
+        title: 'LinkedIn',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.linkedin.com/in/chia-fan-chu", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=BfaixEUAAAAJ", "_blank");
+        },
+      },];
+
+</script> <script src="/assets/al_search/js/shortcut-key.js"></script> </body> </html>

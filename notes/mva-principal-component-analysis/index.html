@@ -1,0 +1,317 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Principal Component Analysis | Chia-Fan Chu </title> <meta name="author" content="Chia-Fan Chu"> <meta name="description" content="Chia-Fan Chu (禇家帆): graduate student at National Taiwan University working on reinforcement learning for production scheduling and applied operations research. "> <meta name="keywords" content="chia-fan chu, reinforcement learning, scheduling, operations research, national taiwan university"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;%E2%9A%9B%EF%B8%8F&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/assets/css/main.css?v=f0b101217084a90093badfe99ff9a7d1"> <link rel="canonical" href="https://okumochu.github.io/notes/mva-principal-component-analysis/"> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/"> <span class="font-weight-bold">Chia-Fan</span> Chu </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/cv/">CV </a> </li> <li class="nav-item active"> <a class="nav-link" href="/notes/">shared notes <span class="sr-only">(current)</span> </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title">Principal Component Analysis</h1> <p class="post-description"></p> </header> <article> <h3 id="in-general">In general</h3> <ul> <li>The goal of PCA: Dim reduction / Interpretation</li> <li>通常只需要共變異數矩陣，不用任何 Multivariate Normal (MVN) 的假設。因為其幾何意義就是轉軸，使其能夠變異最大化。 <ul> <li>但是如果是要做 inference，例如要檢測 sample PCA 的 eigen value 是否有顯著不同，就會需要 MVN 假設</li> </ul> </li> </ul> <h3 id="population-principal-component">Population Principal Component</h3> <h6 id="definition">Definition</h6> <ul> <li>每一個 PC 都是 \(X = (X_1, \dots, X_p)^T\) (共有 p 個 feature) 的 linear combination \(Y = a^TX\)</li> <li>並且對於這個 \(Y\) 有兩個限制下最大化變異 \(\mathrm{Var}(a_1^T X)\) <ul> <li>linear transformation is unit-norm \(a_i^T a_i = 1\) <ul> <li>這個線性轉換在意的是要怎麼轉 variance 會最大跟長度沒有關係。在這個最大化問題框架下要無限放大 a，total variance 就會隨著無限放大。</li> </ul> </li> <li>必須與前面所有 PC 不相關 \(\mathrm{Cov}(a_k^T X, a_i^T X) = 0, \; \forall k &lt; i\) <ul> <li>如果只要求 unit-norm 不要求正交的話，每個 PC 都會長一樣 (就是最大變異的軸 \(e_1\)) ，如果限制要找其他的方向就可以往其他軸去尋找</li> </ul> </li> </ul> </li> </ul> <hr> <h6 id="derivation">Derivation</h6> <ul> <li>Define the 1st PC as \(Y_1 = a_1^T X\), where \(a_1 \in \mathbb{R}^p\).</li> <li>Since \(\Sigma\) is positive definite, by spectral decomposition its eigenvectors \(\{e_1, \dots, e_p\}\) form an orthonormal basis of \(\mathbb{R}^p\). Therefore any \(a_1\) can be written as <ul> <li>手法就是先將 \(a_1\) 在某個 \(e_j\) 的投影長度找出來 (轉換成 eigen basis)，接著再乘上那個方向 (又轉換成標準基底) \(a_1 = \sum_{j=1}^{p} \langle a_1, e_j \rangle\, e_j, \qquad \text{with } \|a_1\|=1.\)</li> </ul> </li> <li> <p><strong>Maximize \(\mathrm{Var}(Y_1)\) subject to \(\Vert a_1\Vert =1\):</strong> \(\mathrm{Var}(Y_1) = a_1^T \Sigma a_1 = \sum_{j=1}^{p} \lambda_j \langle a_1, e_j \rangle^2, \quad \sum_{j=1}^{p} \langle a_1, e_j \rangle^2 = 1.\)</p> <ol> <li> \[\mathrm{Var}(Y_1) = \mathrm{Var}(a_1^T X) = a_1^T\, \mathrm{Cov}(X)\, a_1 = a_1^T \Sigma a_1.\] </li> <li>Let \(c_j = \langle a_1, e_j\rangle\) \(a_1 = \sum_{j=1}^{p} c_j\, e_j.\)</li> <li>Apply \(\Sigma\) to \(a_1\). Since \(\Sigma e_j = \lambda_j e_j\), we have <ul> <li>\(e_j\) is one of the eigen vector of \(\Sigma\), so it only scale by eigen value \(\Sigma a_1 = \sum_{j=1}^{p} c_j\, \Sigma e_j = \sum_{j=1}^{p} c_j \lambda_j\, e_j.\)</li> </ul> </li> <li>Take the inner product with \(a_1^T\), and use orthonormality (\(e_k^T e_j = 1\) when \(k = j\), otherwise \(0\)) to collapse the double sum into a single sum: \(a_1^T \Sigma a_1 = \Big(\sum_{k} c_k e_k\Big)^{\!T} \Big(\sum_{j} c_j \lambda_j e_j\Big) = \sum_{j,k} c_k c_j \lambda_j\, e_k^T e_j = \sum_{j=1}^{p} \lambda_j\, c_j^2 = \sum_{j=1}^{p} \lambda_j \langle a_1, e_j\rangle^2.\)</li> <li>The constraint \(\Vert a_1\Vert =1\) collapses in the same manner: \(\|a_1\|^2 = a_1^T a_1 = \sum_{j,k} c_j c_k\, e_j^T e_k = \sum_{j=1}^{p} c_j^2 = \sum_{j=1}^{p} \langle a_1, e_j\rangle^2 = 1.\)</li> </ol> </li> <li>Since \(\lambda_1 \geq \lambda_2 \geq \dots \geq \lambda_p\), this is maximized by putting all the weight on \(e_1\): <ul> <li>上面的式子告訴你 total variance = eigen value weighted by \(c^2_j\) and $\sum{c_j}^2 =1。所以為了在有限的權重下 maximize total variance，只好全部都給最大的那個 eigen value \(a_1 = e_1 \;\Longrightarrow\; Y_1 = e_1^T X, \quad \mathrm{Var}(Y_1) = \lambda_1.\)</li> </ul> </li> <li>至於接下來的 PC 就會多一個 contraint 就是要跟 PC1 垂直，所以可想而知在這樣的條件下找到的 PC2 就是權重都給第二大的 eigen value: \(\mathrm{Cov}(Y_2, Y_1) = a_2^T \Sigma e_1 = \lambda_1\, a_2^T e_1 = 0\)</li> <li>\(\therefore a_2 \perp e_1\). Maximizing \(\mathrm{Var}(Y_2) = a_2^T \Sigma a_2\) in the subspace orthogonal to \(e_1\) gives \(a_2 = e_2\), so \(Y_2 = e_2^T X\) with \(\mathrm{Var}(Y_2) = \lambda_2\).</li> <li>By induction, the \(i\)-th PC is \(Y_i = e_i^T X\).</li> </ul> <blockquote> <p><strong>證明思路</strong> 這邊就是根據要 maximize 的東西慢慢寫下來，然後看看不同的 term 可不可以合併 (formulate \(a\) with eigen vector) ，然後再把條件寫下來。最後觀察一下就可以得出結論了</p> </blockquote> <hr> <h6 id="are-pcs-unique-degree-of-freedom-analysis">Are PCs unique? (degree of freedom analysis)</h6> <p>Let \(X = (X_1, \dots, X_p)^T\) with covariance matrix \(\Sigma\).</p> <ul> <li>Number of free components in \(\Sigma\) (symmetric): \(\dfrac{p(p+1)}{2}\) <ul> <li>總共提供有上三角 (\(C^p_2\)) + 對角線 (\(p\)) 個方程式算出的純量</li> </ul> </li> <li>Number of parameters introduced by PCA : <ul> <li>\(+p^2\): 總共 p 個特徵向量，每個特徵向量有 p 個值</li> <li>\(-p\): 每個 unit norm 就是一條等式</li> <li>\(-C^p_2\): p 個 component 兩兩正交 \(\underbrace{p^2}_{\#\, e_{ij} } + \underbrace{p}_{\#\, \lambda_i} - \underbrace{p}_{\|e_i\|=1} - \underbrace{\binom{p}{2} }_{\mathrm{Cov}(Y_i, Y_k)=0} = \frac{p(p+1)}{2}\)</li> </ul> </li> </ul> <p><strong>Answer</strong>: Yes, the number of parameters equals the number of equations, so PCs are (essentially) uniquely determined.</p> <blockquote> <p><strong>證明思路</strong> 要看 PC 是否 unique 就是看 \(e_i\) 是否唯一 (indentifiable)，以代數的角度就是看未知數和方程式的個數，如果剛好兩個個數相等就是唯一。 PCA 基本上要解的參數個數就是 eigen value and eigen vector 的個數，然後需要扣掉一些限制。為了要解這個 PCA 提供的就是共變異數矩陣</p> </blockquote> <hr> <h6 id="result">Result</h6> <p>Let \(\Sigma\) be the covariance matrix of \(X = [X_1, \dots, X_p]^T\), with eigen-pairs \((\lambda_1, e_1), \dots, (\lambda_p, e_p)\) satisfying \(\lambda_1 \geq \dots \geq \lambda_p \geq 0\) and \(e_i^T e_i = 1\).</p> <p>Then the \(i\)-th principal component is \(Y_i = e_i^T X = e_{i1} X_1 + \dots + e_{ip} X_p, \quad i = 1, \dots, p,\) with \(\mathrm{Var}(Y_i) = e_i^T \Sigma e_i = \lambda_i, \qquad \mathrm{Cov}(Y_i, Y_k) = e_i^T \Sigma e_k = 0, \; i \neq k.\)</p> <hr> <h6 id="summary">Summary</h6> <p>\((X_1, \dots, X_p) \;\xrightarrow{\text{PCA} }\; (Y_1, \dots, Y_p) \quad \text{with} \begin{cases} \text{(1)} \;\; \mathrm{Cov}(Y_i, Y_j) = 0, \; i \neq j \\ \text{(2)} \;\; \mathrm{Var}(Y_i) = \lambda_i, \;\; \lambda_1 \geq \lambda_2 \geq \dots \geq \lambda_p \end{cases}\)</p> <ul> <li>當 eigenvalue 真的很小時，可能只需要 \((Y_1, \dots, Y_k)\) 就能作為 \((X_1, \dots, X_p)\) 的 good approximation，這正是 PCA 做 dim reduction 的核心</li> <li>另外，PCA 會被單位影響 (scale variate)，單位大的變異也會大 <ul> <li>如果想要對資料做 standardization 再做 PCA 等同於直接把 correlation matrix 拿來做 PCA</li> <li>但是要注意，標準化過所以的變數都會變成同等重要，有時候說不定某些東西的變數就應該要比較重要 (單位是有意義的) \(\text{PCA on standardized } X \;\Longleftrightarrow\; \text{PCA on } \mathrm{Corr}(X)\)</li> </ul> </li> <li>最後 total variance <ul> <li>= tr(\(\Sigma\)) = tr(\(P\Lambda P^{-1}\)) = tr(\(PP^{-1}\Lambda\)) = tr(\(\Lambda\))</li> <li>如果是 Corr 則是 = \(p\) ，因為對角線上的值都是 1</li> </ul> </li> </ul> <hr> <h3 id="large-sample-inference">Large Sample Inference</h3> <p>#unsolved</p> <p>先去讀 FA 了，比較檢定的東西之後再慢慢補</p> <hr> <h3 id="factor-loading">Factor Loading</h3> <ul> <li>每個 PC 就是原始變數的 linear combination：\(Y_i = e_i^T X = e_{i1} X_1 + \dots + e_{ip} X_p\)。因此 coefficient vector \(e_i = [e_{i1}, \dots, e_{ip}]^T\) 的每個分量都值得被檢視，\(\vert e_{ik}\vert\) 越大代表第 \(k\) 個變數對第 \(i\) 個 PC 的貢獻越大。</li> <li>但是 \(e_{ik}\) 本身只是「方向」上的權重，沒有考慮到 \(X_k\) 本身 variance 多大、也沒有考慮到 \(Y_i\) 的 variance（\(\lambda_i\)）有多大。要衡量 PC 和原始變數之間真正的<strong>關聯強度</strong>，更自然的是去看兩者的 correlation。</li> </ul> <h6 id="correlation-between-y_i-and-x_k">Correlation between \(Y_i\) and \(X_k\)</h6> <ul> <li>Result: 令 \(Y_1 = e_1^T X, \dots, Y_p = e_p^T X\) 為由 \(\Sigma\) 得到的 PCs，則 \(Y_i\) 與 \(X_k\) 的 correlation 為 \(\rho_{Y_i, X_k} = \frac{e_{ik}\,\sqrt{\lambda_i} }{\sqrt{\sigma_{kk} } }, \qquad i, k = 1, \dots, p.\)</li> <li>推導思路： <ol> <li>\(\mathrm{Cov}(Y_i, X_k) = \mathrm{Cov}(e_i^T X, \; \mathbf{1}_k^T X) = e_i^T \Sigma \mathbf{1}_k = \lambda_i\, e_{ik}\)。其中用到 \(\Sigma e_i = \lambda_i e_i\) 所以 \(e_i^T \Sigma = \lambda_i e_i^T\)。\(\mathbf{1}_k = (0, \ldots, 0, \underbrace{1}_{k}, 0, \ldots, 0)^T\)</li> <li>\(\mathrm{Var}(Y_i) = \lambda_i\)，\(\mathrm{Var}(X_k) = \sigma_{kk}\)</li> <li>代入 correlation 定義 \(\rho_{Y_i, X_k} = \dfrac{\mathrm{Cov}(Y_i, X_k)}{\sqrt{\mathrm{Var}(Y_i)\cdot\mathrm{Var}(X_k)} } = \dfrac{\lambda_i e_{ik} }{\sqrt{\lambda_i \cdot \sigma_{kk} } }\)</li> </ol> </li> </ul> <h6 id="definition-of-factor-loading">Definition of Factor Loading</h6> <p>\(\; \text{factor loading of } X_k \text{ on } Y_i \;=\; e_{ik}\sqrt{\lambda_i} \;\)</p> <ul> <li>它就是 \(\rho_{Y_i, X_k}\) 的分子，也就是<strong>尚未用 \(X_k\) 的標準差標準化</strong>前的關聯量。</li> <li>對於<strong>標準化過</strong>的變數 \(Z = (V^{1/2})^{-1}(X - \mu)\)（也就是對 correlation matrix 做 PCA），\(\sigma_{kk} = 1\)，所以 \(\rho_{Y_i, Z_k} = e_{ik}\sqrt{\lambda_i}\) <ul> <li>也就是在標準化情況下 <strong>factor loading 就直接等於 correlation</strong>，這也是為什麼實務上通常在標準化後才稱 \(e_{ik}\sqrt{\lambda_i}\) 為 loading。</li> </ul> </li> </ul> <h6 id="intuition-of-factor-loading">Intuition of Factor Loading</h6> <ul> <li> <strong>Loading 大 = 該變數和該 PC 高度相關</strong>，所以可以拿來<strong>解釋 PC 的意義</strong>（e.g. 如果 \(Y_1\) 在 <code class="language-plaintext highlighter-rouge">身高</code>, <code class="language-plaintext highlighter-rouge">體重</code>, <code class="language-plaintext highlighter-rouge">腿長</code> 的 loading 都很大且同號，就可以把 \(Y_1\) 解釋為「體型」因子）。</li> <li>Loading 只衡量單一變數對 PC 的 <strong>univariate contribution</strong>，並沒有考慮其他變數的存在（not a partial correlation）。所以如果變數之間高度相關，loading 會同時給幾個變數很高的值，此時不能說它們都「獨立」地很重要。</li> <li> <strong>Data reduction 的應用</strong>：lecture 最後提到，PCA 不算真正「丟掉變數」，但可以透過<strong>丟掉 loading 最小的原始變數</strong>來減少變數數量，因為這些變數和主要 PCs 的關聯都很弱，資訊量相對少。</li> </ul> <blockquote> <p>所以接下來介紹的 Factor Analysis 就是在做這件事情，找出不同變數群背後的一個潛在因子 (變數是這些潛在因子的線性表現) 來共同解釋變異</p> </blockquote> </article> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Chia-Fan Chu. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/assets/al_math/js/mathjax-setup.js"></script> <script defer src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6" crossorigin="anonymous"></script> <script src="/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/assets/al_img_tools/js/zoom.js"></script> <script defer src="/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-about",
+    title: "about",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/";
+    },
+  },{id: "nav-cv",
+          title: "CV",
+          description: "Education, experience, publications, and skills.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/cv/";
+          },
+        },{id: "nav-shared-notes",
+          title: "shared notes",
+          description: "Notes I keep while reading papers and working through courses. Shared as-is; most are living documents, so expect a few rough edges.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/notes/";
+          },
+        },{id: "notes-mastering-the-game-of-go-without-human-knowledge",
+          title: 'Mastering the Game of Go without Human Knowledge',
+          description: "PUCT math and why MCTS acts as a policy improvement operator.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/alphago-zero/";
+            },},{id: "notes-curriculum-learning-for-reinforcement-learning-domains-a-framework-and-survey",
+          title: 'Curriculum Learning for Reinforcement Learning Domains: A Framework and Survey',
+          description: "Section-by-section summary of the curriculum learning framework and its design dimensions.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-rl-survey/";
+            },},{id: "notes-a-survey-on-curriculum-learning",
+          title: 'A Survey on Curriculum Learning',
+          description: "Predefined vs automatic curricula and self-paced learning, summarized.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-survey/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-dual-attention-network-based-reinforcement-learning",
+          title: 'Flexible Job Shop Scheduling via Dual Attention Network-Based Reinforcement Learning',
+          description: "Dual-attention method with the math spelled out, plus a note on a missing ablation.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/daniel-dual-attention/";
+            },},{id: "notes-deep-reinforcement-learning-for-dynamic-scheduling-of-a-flexible-job-shop",
+          title: 'Deep Reinforcement Learning for Dynamic Scheduling of a Flexible Job Shop',
+          description: "MDP breakdown plus my comparison tables against related dynamic-scheduling designs.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-dynamic-fjs/";
+            },},{id: "notes-challenges-and-opportunities-in-deep-reinforcement-learning-with-graph-neural-networks",
+          title: 'Challenges and Opportunities in Deep Reinforcement Learning with Graph Neural Networks',
+          description: "Review of how DRL and GNNs combine, and where the open challenges are.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-gnn-review/";
+            },},{id: "notes-deep-rl-for-machine-scheduling-methodology-state-of-the-art-and-future-directions",
+          title: 'Deep RL for Machine Scheduling: Methodology, State of the Art, and Future Directions...',
+          description: "Taxonomy of state, action, and reward designs across the machine-scheduling literature.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-machine-scheduling-survey/";
+            },},{id: "notes-feudal-networks-for-hierarchical-reinforcement-learning",
+          title: 'FeUdal Networks for Hierarchical Reinforcement Learning',
+          description: "Manager/Worker architecture, transition policy gradient, and ablations explained.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/feudal-networks/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-graph-neural-network-and-deep-reinforcement-learning",
+          title: 'Flexible Job-Shop Scheduling via Graph Neural Network and Deep Reinforcement Learning',
+          description: "Detailed method and experiment summary of a key heterogeneous-graph baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-gnn-drl/";
+            },},{id: "notes-the-flexible-job-shop-scheduling-problem-a-review",
+          title: 'The Flexible Job Shop Scheduling Problem: A Review',
+          description: "Schedule classes, problem variants, and solution families, connected back to RL.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-review/";
+            },},{id: "notes-heterogeneous-graph-transformer",
+          title: 'Heterogeneous Graph Transformer',
+          description: "Mutual attention, message passing, and relative temporal encoding, with a worked example.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/heterogeneous-graph-transformer/";
+            },},{id: "notes-knowledge-enabled-multi-agent-drl-for-batch-machine-scheduling-in-semiconductor-fabrication",
+          title: 'Knowledge-enabled Multi-agent DRL for Batch Machine Scheduling in Semiconductor Fabrication',
+          description: "IRL plus MADRL pipeline, reward design, and my critique of it.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/knowledge-madrl-semiconductor/";
+            },},{id: "notes-list-scheduling-and-beam-search-methods-for-the-fjsp-with-sequencing-flexibility",
+          title: 'List Scheduling and Beam Search Methods for the FJSP with Sequencing Flexibility',
+          description: "Problem, method, and results of a strong non-learning FJSP baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/list-scheduling-beam-search-fjsp/";
+            },},{id: "notes-monte-carlo-tree-search-a-review-of-recent-modifications-and-applications",
+          title: 'Monte Carlo Tree Search: A Review of Recent Modifications and Applications',
+          description: "Survey walkthrough of the MCTS phases and variants, with my notes on relevance to scheduling.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mcts-review/";
+            },},{id: "notes-ch-0-introduction",
+          title: 'Ch 0 Introduction',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch0-introduction/";
+            },},{id: "notes-ch-1-traditional-machine-learning-on-graphs",
+          title: 'Ch 1 Traditional Machine Learning on Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch1-traditional-ml-on-graphs/";
+            },},{id: "notes-ch-10-11-15-knowledge-graph",
+          title: 'Ch 10, 11, 15 Knowledge Graph',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch10-11-15-knowledge-graph/";
+            },},{id: "notes-ch-12-gnns-for-recommender-systems",
+          title: 'Ch 12 GNNs for Recommender Systems',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch12-gnns-for-recommender-systems/";
+            },},{id: "notes-ch-14-advanced-topics-in-graph-neural-networks",
+          title: 'Ch 14 Advanced Topics in Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch14-advanced-topics/";
+            },},{id: "notes-ch-16-deep-generative-models-for-graphs",
+          title: 'Ch 16 Deep Generative Models for Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch16-deep-generative-models/";
+            },},{id: "notes-ch-17-geometric-graph-learning",
+          title: 'Ch 17 Geometric Graph Learning',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch17-geometric-graph-learning/";
+            },},{id: "notes-ch-19-label-propagation",
+          title: 'Ch 19 Label Propagation',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch19-label-propagation/";
+            },},{id: "notes-ch-2-node-embedding",
+          title: 'Ch 2 Node Embedding',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch2-node-embedding/";
+            },},{id: "notes-ch-20-scaling-up-gnns",
+          title: 'Ch 20 Scaling Up GNNs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch20-scaling-up-gnns/";
+            },},{id: "notes-ch-21-trustworthy-graph-ai",
+          title: 'Ch 21 Trustworthy Graph AI',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch21-trustworthy-graph-ai/";
+            },},{id: "notes-ch-3-graph-neural-networks",
+          title: 'Ch 3 Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch3-graph-neural-networks/";
+            },},{id: "notes-ch-4-a-general-perspective-on-graph-neural-networks",
+          title: 'Ch 4 A General Perspective on Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch4-general-perspective-on-gnn/";
+            },},{id: "notes-ch-5-gnn-augmentation-and-training",
+          title: 'Ch 5 GNN Augmentation and Training',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch5-gnn-augmentation-and-training/";
+            },},{id: "notes-ch-6-theory-of-graph-neural-networks",
+          title: 'Ch 6 Theory of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch6-theory-of-gnns/";
+            },},{id: "notes-ch-7-limits-of-graph-neural-networks",
+          title: 'Ch 7 Limits of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch7-limits-of-gnns/";
+            },},{id: "notes-ch-8-graph-transformers",
+          title: 'Ch 8 Graph Transformers',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch8-graph-transformers/";
+            },},{id: "notes-ch-9-machine-learning-with-heterogeneous-graphs",
+          title: 'Ch 9 Machine Learning with Heterogeneous Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch9-heterogeneous-graphs/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map plus my conclusions on how to design and train a GNN.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-overview/";
+            },},{id: "notes-clustering-method",
+          title: 'Clustering Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-clustering-method/";
+            },},{id: "notes-factor-analysis",
+          title: 'Factor Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-factor-analysis/";
+            },},{id: "notes-prerequisite",
+          title: 'Prerequisite',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-prerequisite/";
+            },},{id: "notes-principal-component-analysis",
+          title: 'Principal Component Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-principal-component-analysis/";
+            },},{id: "notes-ch-14-general-purpose-procedures-for-deterministic-scheduling",
+          title: 'Ch 14 General Purpose Procedures for Deterministic Scheduling',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch14-general-purpose-procedures/";
+            },},{id: "notes-ch-15-more-advance-general-purpose-procedures",
+          title: 'Ch 15 More Advance General Purpose Procedures',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch15-more-advance-general-purpose-procedures/";
+            },},{id: "notes-ch-16-modeling-and-solving-scheduling-problems-in-practice",
+          title: 'Ch 16 Modeling and Solving Scheduling Problems in Practice',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch16-modeling-and-solving-scheduling-problems/";
+            },},{id: "notes-ch-2-deterministic-models-preliminaries",
+          title: 'Ch 2 Deterministic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch2-deterministic-models-preliminaries/";
+            },},{id: "notes-ch-3-single-machine-method",
+          title: 'Ch 3 Single Machine Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch3-single-machine-method/";
+            },},{id: "notes-ch-4-advance-single-machine",
+          title: 'Ch 4 Advance Single Machine',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch4-advance-single-machine/";
+            },},{id: "notes-ch-5-parallel-machine-model",
+          title: 'Ch 5 Parallel Machine Model',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch5-parallel-machine-model/";
+            },},{id: "notes-ch-6-flow-shop",
+          title: 'Ch 6 Flow Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch6-flow-shop/";
+            },},{id: "notes-ch-7-job-shop",
+          title: 'Ch 7 Job Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch7-job-shop/";
+            },},{id: "notes-ch-8-open-shop",
+          title: 'Ch 8 Open Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch8-open-shop/";
+            },},{id: "notes-ch-9-stochastic-models-preliminaries",
+          title: 'Ch 9 Stochastic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch9-stochastic-models-preliminaries/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map: which chapters are covered and how they fit together.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-overview/";
+            },},{id: "notes-real-time-scheduling-for-dynamic-partial-no-wait-multiobjective-flexible-job-shop-by-drl",
+          title: 'Real-Time Scheduling for Dynamic Partial-No-Wait Multiobjective Flexible Job Shop by DRL',
+          description: "Hierarchical multi-agent MDP with rule tables and Pareto metrics.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/realtime-partial-no-wait-fjs/";
+            },},{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%6F%6B%75%6D%6F%63%68%75%35%35@%67%6D%61%69%6C.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-github',
+        title: 'GitHub',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://github.com/okumochu", "_blank");
+        },
+      },{
+        id: 'social-linkedin',
+        title: 'LinkedIn',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.linkedin.com/in/chia-fan-chu", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=BfaixEUAAAAJ", "_blank");
+        },
+      },];
+
+</script> <script src="/assets/al_search/js/shortcut-key.js"></script> </body> </html>

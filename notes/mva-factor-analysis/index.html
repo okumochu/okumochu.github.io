@@ -1,0 +1,317 @@
+<!DOCTYPE html> <html lang="en"> <head> <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"> <meta charset="utf-8"> <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <meta http-equiv="X-UA-Compatible" content="IE=edge"> <title> Factor Analysis | Chia-Fan Chu </title> <meta name="author" content="Chia-Fan Chu"> <meta name="description" content="Chia-Fan Chu (禇家帆): graduate student at National Taiwan University working on reinforcement learning for production scheduling and applied operations research. "> <meta name="keywords" content="chia-fan chu, reinforcement learning, scheduling, operations research, national taiwan university"> <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; media-src 'self' https:; frame-src 'self' https:; connect-src 'self' https:;"> <style>
+  :root {
+    --max-content-width: 930px;
+  }
+</style> <link rel="stylesheet" href="/assets/css/tailwind.css?v=50c64c15cbb9fd1ce6056fdb8bcb4b62"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/css/all.min.css" integrity="sha256-MVopmdyC2tYTiJ8wlktf0uh0v4NgT+vNdyVFepi7Q0c=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/academicons@1.9.5/css/academicons.min.css" integrity="sha256-SzrCOBJbGVFMahewkgjwnApaV2+av1DwMAA+/QGLyZw=" crossorigin="anonymous"> <link defer rel="stylesheet" href="https://cdn.jsdelivr.net/npm/scholar-icons@1.0.3/css/scholar-icons.css" integrity="sha256-VY3hHVj/hNX3fYG6wtbA6TcKJQl7+FthzGSyIB64klY=" crossorigin="anonymous"> <link defer rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:100,300,400,500,700|Material+Icons&amp;display=swap"> <link defer rel="stylesheet" href="/assets/css/jekyll-pygments-themes-github.css?v=591dab5a4e56573bf4ef7fd332894c99" media="" id="highlight_theme_light"> <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22&gt;&lt;text%20y=%22.9em%22%20font-size=%2290%22&gt;%E2%9A%9B%EF%B8%8F&lt;/text&gt;&lt;/svg&gt;"> <link rel="stylesheet" href="/assets/css/main.css?v=f0b101217084a90093badfe99ff9a7d1"> <link rel="canonical" href="https://okumochu.github.io/notes/mva-factor-analysis/"> </head> <body class="fixed-top-nav "> <header> <nav id="navbar" class="navbar navbar-light navbar-expand-sm fixed-top" role="navigation"> <div class="container"> <a class="navbar-brand title font-weight-lighter" href="/"> <span class="font-weight-bold">Chia-Fan</span> Chu </a> <button class="navbar-toggler collapsed navbar-toggler-main" type="button" data-nav-toggle="navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar top-bar"></span> <span class="icon-bar middle-bar"></span> <span class="icon-bar bottom-bar"></span> </button> <div class="collapse navbar-collapse navbar-collapse-main" id="navbarNav"> <ul class="navbar-nav navbar-menu-list flex-nowrap"> <li class="nav-item "> <a class="nav-link" href="/">about </a> </li> <li class="nav-item "> <a class="nav-link" href="/cv/">CV </a> </li> <li class="nav-item active"> <a class="nav-link" href="/notes/">shared notes <span class="sr-only">(current)</span> </a> </li> <li class="nav-item"> <button id="search-toggle" type="button" title="Search" aria-label="Open search"> <span class="nav-link">ctrl k <i class="fa-solid fa-magnifying-glass"></i></span> </button> </li> </ul> </div> </div> </nav> <progress id="progress" value="0"> <div class="progress-container"> <span class="progress-bar"></span> </div> </progress> </header> <div class="container mt-5" role="main"> <div class="post"> <header class="post-header"> <h1 class="post-title">Factor Analysis</h1> <p class="post-description"></p> </header> <article> <h3 id="in-general">In general</h3> <ul> <li>The goal of FA: 用一小撮 latent factors \(F_1, \dots, F_m\) (\(m \ll p\)) 來解釋 \(p\) 個觀測變數之間的 <strong>covariance structure</strong>。</li> <li>FA 的核心信念：「相關高的變數背後有共同的潛在因子」。把每個 \(X_i\) 拆成「共同因子貢獻 (communality)」加「個別誤差 (specific variance)」，正是這個想法的數學化。</li> <li>FA vs PCA 的關鍵差異： <ul> <li> <strong>PCA</strong> 是純粹的 linear transformation：\(Y = E^T X\)，沒有 model assumption，目標是把總變異重新分配到正交軸上 (variance-maximizing rotation)。\(Y\) 是 \(X\) 的<strong>直接函數</strong>，永遠算得出來。</li> <li> <strong>FA</strong> 是一個 <strong>statistical model</strong>：\(X - \mu = LF + \varepsilon\)，\(F\) 是 latent (不可觀察)，目標是 fit <strong>off-diagonal covariance</strong>。Model 不一定 fit 得起來 (大多數 \(\Sigma\) 其實沒辦法寫成 \(LL^T + \Psi\))。</li> <li>一句話：PCA 重組 variance，FA 解釋 covariance。</li> </ul> </li> </ul> <blockquote> <p><strong>接續 PCA 結尾的動機</strong> 在 <a href="/notes/mva-principal-component-analysis/">Principal Component Analysis</a> 的 factor loading 段落結尾提到：「Factor Analysis 在做的就是找出不同變數群背後的潛在因子」。這份 note 就是把那個 informal 的觀察 model 化。最自然的連結：PCA 中第一個 PC 上 loading 大的那群變數，正好對應 FA 中可能屬於同一個 common factor 的變數群。</p> </blockquote> <hr> <h3 id="orthogonal-factor-model">Orthogonal Factor Model</h3> <h6 id="definition">Definition</h6> <ul> <li>令 \(X = (X_1, \dots, X_p)^T\) with \(E(X) = \mu\), \(\mathrm{Cov}(X) = \Sigma\)。Orthogonal factor model 假設： \(\underbrace{X - \mu}_{p \times 1} = \underbrace{L}_{p \times m}\,\underbrace{F}_{m \times 1} + \underbrace{\varepsilon}_{p \times 1}\)</li> <li>展開來逐個變數寫： \(\begin{cases} X_1 - \mu_1 = \ell_{11} F_1 + \ell_{12} F_2 + \cdots + \ell_{1m} F_m + \varepsilon_1 \\ X_2 - \mu_2 = \ell_{21} F_1 + \ell_{22} F_2 + \cdots + \ell_{2m} F_m + \varepsilon_2 \\ \quad\vdots \\ X_p - \mu_p = \ell_{p1} F_1 + \ell_{p2} F_2 + \cdots + \ell_{pm} F_m + \varepsilon_p \\ \end{cases}\)</li> <li>\(F = (F_1, \dots, F_m)^T\)：<strong>common factors</strong> (latent，所有變數共享)。</li> <li>\(\varepsilon = (\varepsilon_1, \dots, \varepsilon_p)^T\)：<strong>specific factors / errors</strong> (latent，每個變數獨有)。</li> <li>\(L = [\ell_{ij}]_{p \times m}\)：<strong>factor loading matrix</strong>，\(\ell_{ij}\) 為第 \(i\) 個變數在第 \(j\) 個 factor 上的 loading。</li> </ul> <h6 id="assumptions">Assumptions</h6> <ol> <li>\(F \perp \varepsilon\) (independent)。</li> <li>\(E(F) = 0\)，\(\mathrm{Cov}(F) = E(FF^T) = I_{m}\)。 <ul> <li>factors 都是 mean 0、unit variance、彼此正交。「<strong>orthogonal</strong> factor model」名字就來自這條。</li> </ul> </li> <li>\(E(\varepsilon) = 0\)，\(\mathrm{Cov}(\varepsilon) = E(\varepsilon \varepsilon^T) = \Psi = \mathrm{diag}(\psi_1, \dots, \psi_p)\)。 <ul> <li>不同變數的 specific factors 之間互不相關。這是 FA 最核心的 model assumption：把「共有的部分」全部用 \(F\) 解釋掉，剩下的 \(\varepsilon\) 應該完全獨立。</li> </ul> </li> </ol> <blockquote> <p><strong>為什麼可以假設 Cov(F) = I？</strong> 看起來像很強的限制，其實是 normalisation。任何有相關 / 不同 variance 的 \(\tilde F\) 都可以 whitening：用 \(\tilde F = A F\) (\(A\) 是某 invertible matrix) 變成 unit variance、互不相關，把多餘的 scale / rotation 吃進 \(L\) 裡 (\(\tilde L = L A^{-1}\))。所以「假設 \(\mathrm{Cov}(F) = I\)」沒有犧牲一般性，這也是後面 rotation indeterminacy 的根源。</p> </blockquote> <hr> <h6 id="derivation-of-the-covariance-structure">Derivation of the Covariance Structure</h6> <ul> <li>目標：用 \(L, \Psi\) 表達 \(\Sigma = \mathrm{Cov}(X)\)。</li> <li>Direct expansion: \((X - \mu)(X - \mu)^T = (LF + \varepsilon)(LF + \varepsilon)^T = LFF^T L^T + \varepsilon F^T L^T + L F \varepsilon^T + \varepsilon \varepsilon^T.\)</li> <li>取期望，利用 \(F \perp \varepsilon \Rightarrow E(F\varepsilon^T) = 0\)、\(E(FF^T) = I\)、\(E(\varepsilon \varepsilon^T) = \Psi\)： \(\Sigma = E[(X-\mu)(X-\mu)^T] = L \cdot I \cdot L^T + 0 + 0 + \Psi = LL^T + \Psi.\)</li> <li>同樣方式可得 \(X\) 與 \(F\) 的 cross-covariance： \(\mathrm{Cov}(X, F) = E[(X-\mu)F^T] = E[(LF + \varepsilon)F^T] = L \cdot I + 0 = L.\)</li> </ul> <h6 id="result-covariance-decomposition">Result (covariance decomposition)</h6> <p>\(\boxed{\;\Sigma = LL^T + \Psi\;}, \qquad \boxed{\;\mathrm{Cov}(X, F) = L\;}.\)</p> <ul> <li>Element-wise: \(\sigma_{ii} = \mathrm{Var}(X_i) = \underbrace{\ell_{i1}^2 + \cdots + \ell_{im}^2}_{\text{communality } h_i^2} + \underbrace{\psi_i}_{\text{specific variance} }\) \(\sigma_{ik} = \mathrm{Cov}(X_i, X_k) = \ell_{i1}\ell_{k1} + \cdots + \ell_{im}\ell_{km} \quad (i \neq k)\) \(\mathrm{Cov}(X_i, F_j) = \ell_{ij}.\)</li> <li> <strong>Communality</strong> \(h_i^2 = \sum_{j=1}^m \ell_{ij}^2\)：\(X_i\) 的 variance 中，<strong>被 common factors 解釋掉</strong>的那塊。</li> <li> <strong>Specific variance / uniqueness</strong> \(\psi_i\)：\(X_i\) 獨有、無法被 common factors 解釋的那塊。</li> <li>\(\mathrm{Cov}(X_i, F_j) = \ell_{ij}\)：loading 同時也是「變數與因子之間的 covariance」，這給 loading 一個直觀的詮釋。</li> <li> <strong>重點</strong>：\(\sigma_{ik}\) (\(i \neq k\)) 完全由 \(LL^T\) 決定 (對角線以外 \(\Psi\) 沒貢獻)。FA 真正想 fit 的就是 <strong>off-diagonal</strong>。</li> </ul> <blockquote> <p><strong>FA 的 model fit 角度</strong> \(\Sigma\) 共有 \(\dfrac{p(p+1)}{2}\) 個獨立元素 (對稱)。對角的 \(p\) 個 variance 一定可以用 \(h_i^2 + \psi_i\) 湊出來 (\(\psi_i\) 自由可調)，所以 FA 的 fit 好不好，重點在 <strong>off-diagonal 的 \(\binom{p}{2}\) 個 covariance</strong> 是不是真的可以被低秩 \(LL^T\) 表達。如果不能，FA model 就不適合這份資料。</p> </blockquote> <hr> <h6 id="parameter-counting-and-identifiability">Parameter Counting and Identifiability</h6> <ul> <li>Number of free elements in target \(\Sigma\): \(\dfrac{p(p+1)}{2}\)。</li> <li>Number of parameters in \((L, \Psi)\): <ul> <li>\(mp\): factor loadings \(\ell_{ij}\)</li> <li>\(p\): specific variances \(\psi_i\)</li> <li>小計: \(p(m+1)\)</li> </ul> </li> <li>但 \(L\) 不 unique，要再扣掉 rotation 的 \(\dfrac{m(m-1)}{2}\) 自由度 (\(m \times m\) orthogonal group \(O(m)\) 的 dimension)。</li> <li>Effective degrees of freedom for FA to be identifiable: \(v_0 = \frac{p(p+1)}{2} - \left[p(m+1) - \frac{m(m-1)}{2}\right] = \frac{1}{2}\!\left[(p-m)^2 - (p+m)\right]\)</li> <li>這個 \(v_0\) 也正好是後面 LRT 的 degrees of freedom。需要 \(v_0 \geq 0\) 才能進行檢定，等價於： \(m &lt; \tfrac{1}{2}\bigl(2p + 1 - \sqrt{8p+1}\bigr).\)</li> </ul> <blockquote> <p><strong>直觀理解 identifiability</strong> <a href="/notes/mva-principal-component-analysis/">Principal Component Analysis</a> 中算過 PCA 的方程式跟未知數剛好相等，所以 PCs 唯一。FA 因為 \(m &lt; p\)，方程式 (\(\Sigma\) 的 entries) 多於未知數 (\(L, \Psi\) 的 entries)，所以 model 通常 over-determined：<strong>不是每個 \(\Sigma\) 都能完美寫成 \(LL^T + \Psi\)</strong>。這也是 lecture 強調「most covariance matrices cannot be factored as \(LL^T + \Psi\) when \(m \ll p\)」的原因。</p> </blockquote> <hr> <h6 id="rotation-indeterminacy-why-rotation-is-free">Rotation Indeterminacy (Why Rotation is Free)</h6> <ul> <li>令 \(T_{m \times m}\) 為任意 orthogonal matrix (\(T T^T = T^T T = I_m\))。Define \(L^* = LT, \qquad F^* = T^T F.\)</li> <li>則 model 完全等價： \(X - \mu = LF + \varepsilon = (LT)(T^T F) + \varepsilon = L^* F^* + \varepsilon.\)</li> <li>而且 \(F^*\) 仍滿足 FA 的假設： \(E(F^*) = T^T E(F) = 0, \quad \mathrm{Cov}(F^*) = T^T \mathrm{Cov}(F) T = T^T I T = I.\)</li> <li>對 covariance 的影響： \(\Sigma = LL^T + \Psi = (LT)(LT)^T + \Psi = L^* {L^*}^T + \Psi.\)</li> <li> <strong>結論</strong>：loadings 只能被決定到「差一個 orthogonal rotation」。 <ul> <li>Communalities \(h_i^2 = (LL^T)_{ii} = (L^* {L^*}^T)_{ii}\) <strong>rotation-invariant</strong> (對角元不變)。</li> <li>Specific variances \(\psi_i\) 也不變。</li> <li>但個別 loading \(\ell_{ij}\) 會跟著 \(T\) 一起變。</li> </ul> </li> <li>這個自由度就是後面 <strong>factor rotation</strong> 的合法性來源：既然所有 rotation 都同樣 fit data，那就挑一個「最好解釋」的版本。</li> </ul> <hr> <h3 id="methods-of-estimation">Methods of Estimation</h3> <p>主流兩種：<strong>Principal Component method</strong> 與 <strong>Maximum Likelihood method</strong>。Lecture 強調實務上會兩個都做、互相對照。</p> <h4 id="principal-component-method">Principal Component Method</h4> <h6 id="derivation">Derivation</h6> <ul> <li>對 \(\Sigma\) 做 spectral decomposition (eigen-pairs \((\lambda_i, e_i)\)，\(\lambda_1 \geq \dots \geq \lambda_p \geq 0\))： \(\Sigma = \sum_{i=1}^{p} \lambda_i e_i e_i^T = [\sqrt{\lambda_1} e_1 \;\cdots\; \sqrt{\lambda_p} e_p] \begin{bmatrix} \sqrt{\lambda_1} e_1^T \\ \vdots \\ \sqrt{\lambda_p} e_p^T \end{bmatrix} = L L^T + 0.\)</li> <li>也就是說：在 \(m = p\)、\(\Psi = 0\) 的「退化情況」下，\(L\) 的第 \(j\) 行就是 \(\sqrt{\lambda_j} e_j\)，<strong>正好是 PCA 中 \(X_k\) 在 \(Y_j\) 上的 factor loading</strong> (見 <a href="/notes/mva-principal-component-analysis/">Principal Component Analysis</a> 結尾)。</li> <li>把後面 \(p - m\) 個小 eigenvalue 丟掉做 approximation： \(\Sigma \approx \tilde L \tilde L^T + \tilde \Psi, \qquad \tilde L = [\sqrt{\lambda_1} e_1 \;\cdots\; \sqrt{\lambda_m} e_m],\) \(\tilde \Psi = \mathrm{diag}\!\left(\sigma_{11} - \sum_{j=1}^m \tilde\ell_{1j}^2, \;\ldots,\; \sigma_{pp} - \sum_{j=1}^m \tilde\ell_{pj}^2\right).\)</li> <li>\(\tilde \Psi\) 用「對角線殘差」補回來，保證 \(\Sigma\) 的對角線完全被 \(\tilde L \tilde L^T + \tilde \Psi\) matched。但 <strong>off-diagonal</strong> 仍會有殘差，這就是 PC method 跟真正 FA 的妥協。</li> </ul> <h6 id="sample-version">Sample Version</h6> <ul> <li>用 sample covariance \(S\) (或 sample correlation \(R\)) 替換 \(\Sigma\)。eigen-pairs 寫成 \((\hat\lambda_i, \hat e_i)\)： \(\hat L = [\sqrt{\hat\lambda_1}\, \hat e_1 \;\cdots\; \sqrt{\hat\lambda_m}\, \hat e_m], \qquad \hat \psi_i = s_{ii} - \sum_{j=1}^m \hat\ell_{ij}^2, \qquad \hat h_i^2 = \sum_{j=1}^m \hat\ell_{ij}^2.\)</li> <li>兩個重要性質： <ol> <li> <strong>Loadings 不會隨 \(m\) 改變</strong>：把 \(m\) 從 3 增加到 4，前 3 個 column 仍是同一組 \(\sqrt{\hat\lambda_j} \hat e_j\)，只是再加一行 \(\sqrt{\hat\lambda_4} \hat e_4\)。MLE 不具備這個性質。</li> <li> <strong>Standardised case</strong>：對 standardised \(Z\) 做 PC method 等同於對 \(R\) 做 PC method (跟 PCA 相同的 scale 議題)。</li> </ol> </li> </ul> <h6 id="selecting-the-number-of-factors-m">Selecting the Number of Factors \(m\)</h6> <p>\(\text{Proportion of total sample variance due to } j\text{-th factor} = \begin{cases} \dfrac{\hat\lambda_j}{s_{11} + \cdots + s_{pp} } &amp; \text{(based on } S\text{)} \\[4pt] \dfrac{\hat\lambda_j}{p} &amp; \text{(based on } R\text{, since } \mathrm{tr}(R) = p) \end{cases}\)</p> <ul> <li>三個常用 heuristic： <ol> <li>一直加 \(m\) 直到累積比例「夠大」 (e.g. 80%)。</li> <li> <strong>Kaiser’s rule</strong>: \(R\) 的 eigenvalue 大於 1 的個數。直觀：standardised variance = 1，一個 factor 至少要解釋一個變數的份才值得留。</li> <li> <strong>Scree plot</strong>: 找 eigenvalue 曲線出現「彎折 (elbow)」的位置。</li> </ol> </li> </ul> <h6 id="residual-matrix">Residual Matrix</h6> <ul> <li>Approximation 好不好可以看殘差矩陣 \(S - \hat L \hat L^T - \hat \Psi\)。</li> <li>Analytically, sum of squared entries 約等於被丟掉的 eigenvalues 平方和： \(\sum_{i,k}\!\left(S - \hat L \hat L^T - \hat \Psi\right)_{ik}^{\!2} \;\leq\; \hat\lambda_{m+1}^2 + \cdots + \hat\lambda_p^2.\)</li> <li>所以「丟掉的 eigenvalues 都很小」 \(\Rightarrow\) 「殘差矩陣的元素都很小」 \(\Rightarrow\) approximation 良好。</li> </ul> <hr> <h4 id="a-modified-approach-principal-factor-solution">A Modified Approach: Principal Factor Solution</h4> <h6 id="motivation">Motivation</h6> <ul> <li>對 standardised case，若 model 正確，\(R\) 的對角元素 \(1 = h_i^2 + \psi_i\)。</li> <li>PC method 直接對 \(R\) 做 eigen 分解，等於把對角元素都當成 1 處理；但其實對角線「該被 common factors 解釋的部分只有 \(h_i^2\)」。</li> <li> <strong>Principal factor solution</strong> 的想法：先估個 \(\psi_i\)，把 \(R\) 的對角線換成 \(h_i^2 = 1 - \psi_i\)，得到 reduced correlation matrix \(R_r\)，再對 \(R_r\) 做 eigen 分解。</li> </ul> <h6 id="procedure">Procedure</h6> <p>\(R_r = \begin{bmatrix} h_1^2 &amp; r_{12} &amp; \cdots &amp; r_{1p} \\ r_{21} &amp; h_2^2 &amp; \cdots &amp; r_{2p} \\ \vdots &amp; \vdots &amp; \ddots &amp; \vdots \\ r_{p1} &amp; r_{p2} &amp; \cdots &amp; h_p^2 \end{bmatrix}\)</p> <ul> <li>對 \(R_r\) 取前 \(m\) 個 eigen-pairs \((\hat\lambda_i^*, \hat e_i^*)\)，更新： \(\hat L = [\sqrt{\hat\lambda_1^*}\,\hat e_1^* \;\cdots\; \sqrt{\hat\lambda_m^*}\,\hat e_m^*], \qquad \hat\psi_i = 1 - \sum_{j=1}^m \hat\ell_{ij}^2, \qquad \hat h_i^2 = \sum_{j=1}^m \hat\ell_{ij}^2.\)</li> <li>然後用新的 \(\hat\psi_i\) 更新 \(R_r\) 的對角線，<strong>iteratively</strong> 進行直到收斂。</li> <li>Initial estimate of \(\psi_i\) 常用 \(1/r^{ii}\)，其中 \(r^{ii}\) 是 \(R^{-1}\) 的第 \(i\) 個對角元 (對應 \(X_i\) 對其餘變數做 multiple regression 後 \(1 - R_i^2\) 的概念)。</li> <li> <strong>注意</strong>：因為 \(R_r\) 對角線可能小於 1，eigenvalue 可能是負的，實務上要小心處理。</li> </ul> <blockquote> <p><strong>為什麼 principal factor 比 PC method 更貼近 FA</strong> PC method 對 \(R\) 直接做 eigen decomposition 是「用 PCA 模仿 FA」的一階近似，連對角線一起 fit。Principal factor 把對角線中「不該被 common factor 解釋」的 \(\psi_i\) 先扣掉再做 eigen，這樣 eigen decomposition 就是真的在 fit off-diagonal covariance，spirit 上更接近 FA model 的本意。</p> </blockquote> <hr> <h4 id="maximum-likelihood-method">Maximum Likelihood Method</h4> <h6 id="setup-and-likelihood">Setup and Likelihood</h6> <ul> <li>進一步假設 \(F \sim N_m(0, I)\)、\(\varepsilon \sim N_p(0, \Psi)\) 且 jointly normal，則 \(X - \mu = LF + \varepsilon \;\sim\; N_p\!\bigl(0,\, LL^T + \Psi\bigr).\)</li> <li>對 \(X_1, \dots, X_n\) 寫 likelihood \(L(\mu, \Sigma)\)，再把 \(\Sigma\) 限制成 \(LL^T + \Psi\) 的形式之後 max over \(L, \Psi\)。</li> <li>由於 \(L\) 不 unique，ML 強制加一個 <strong>uniqueness condition</strong> 讓問題 well-posed： \(L^T \Psi^{-1} L = \Delta, \qquad \Delta \text{ diagonal}.\)</li> <li>MLE \(\hat L, \hat \Psi\) 沒有 closed form，<strong>只能 numerical optimisation</strong>。</li> <li>By invariance of MLE： \(\hat h_i^2 = \hat\ell_{i1}^2 + \cdots + \hat\ell_{im}^2.\) \(\text{Proportion of total sample variance due to } j\text{-th factor} = \frac{\hat\ell_{1j}^2 + \cdots + \hat\ell_{pj}^2}{s_{11} + \cdots + s_{pp} }.\)</li> </ul> <h6 id="standardised-version">Standardised Version</h6> <ul> <li>若 \(Z = V^{-1/2}(X - \mu)\)，其中 \(V = \mathrm{diag}(\Sigma)\)，則 \(\rho = V^{-1/2} \Sigma V^{-1/2} = \bigl(V^{-1/2} L\bigr)\bigl(V^{-1/2} L\bigr)^T + V^{-1/2} \Psi V^{-1/2}.\)</li> <li>所以 standardised loadings 與 standardised specific variances 為 \(\hat L_z = \hat V^{-1/2} \hat L, \qquad \hat \Psi_z = \hat V^{-1/2} \hat \Psi \hat V^{-1/2}.\)</li> </ul> <hr> <h6 id="large-sample-test-for-the-number-of-factors-lrt">Large Sample Test for the Number of Factors (LRT)</h6> <ul> <li>Hypotheses (在 normality 下)： \(H_0: \Sigma = LL^T + \Psi \quad\text{with given } m \qquad\text{vs}\qquad H_1: \Sigma \text{ is any positive definite}.\)</li> <li>Maximised likelihoods: <ul> <li>在 \(H_1\) 下：\(\hat\mu = \bar x\), \(\hat\Sigma = S_n = \dfrac{n-1}{n} S\)。Maximised likelihood \(\propto \vert S_n\vert ^{-n/2} e^{-np/2}\)。</li> <li>在 \(H_0\) 下：\(\hat\mu = \bar x\), \(\hat\Sigma = \hat L \hat L^T + \hat \Psi\)。Maximised likelihood \(\propto \vert \hat L \hat L^T + \hat\Psi\vert ^{-n/2} e^{-np/2}\)。</li> </ul> </li> <li>Likelihood ratio statistic: \(-2 \ln \Lambda = n \ln \frac{|\hat L \hat L^T + \hat \Psi|}{|S_n|}.\)</li> <li>大樣本下 \(\sim \chi^2_{v_0}\)，自由度 \(v - v_0 = \tfrac{1}{2} p(p+1) - \left[p(m+1) - \tfrac{1}{2} m(m-1)\right] = \tfrac{1}{2}\!\left[(p-m)^2 - p - m\right].\)</li> <li> <strong>Bartlett’s correction</strong>：把 \(n\) 替換成 \(n - 1 - (2p + 4m + 5)/6\) 可改善 chi-square approximation： \(\bigl(n - 1 - \tfrac{2p + 4m + 5}{6}\bigr)\, \ln \frac{|\hat L \hat L^T + \hat \Psi|}{|S_n|} \;&gt;\; \chi^2_{[(p-m)^2 - p - m]/2}(\alpha) \;\;\Rightarrow\;\; \text{reject } H_0.\)</li> <li>因為自由度必須非負，可以 test 的 \(m\) 上限是 \(m &lt; \tfrac{1}{2}\bigl(2p + 1 - \sqrt{8p+1}\bigr).\)</li> </ul> <blockquote> <p><strong>看 LRT 的角度</strong> \(-2 \ln \Lambda\) 越大 \(\Leftrightarrow\) \(\vert \hat L \hat L^T + \hat \Psi\vert\) 跟 \(\vert S_n\vert\) 差越多 \(\Leftrightarrow\) FA model 跟 sample covariance fit 得越差 \(\Leftrightarrow\) 越要 reject「\(m\) 個 factor 就夠用」這個假設。所以 reject = 因子數還不夠。</p> </blockquote> <hr> <h4 id="comparison-pc-method-vs-mle">Comparison: PC method vs MLE</h4> <ul> <li> <strong>Residual matrix</strong> \(R - \hat L \hat L^T - \hat \Psi\) (lecture 例子)： <ul> <li>MLE 的 residual entries 都極小 (~\(10^{-3}\) 量級)，因為 ML 直接把「fit 不上 covariance」這件事寫進 likelihood 然後最小化。</li> <li>PC method 的 residual 明顯較大 (~\(10^{-1}\) 量級)，因為它優先 fit 對角線 (variance) 而不是對角線外 (covariance)。</li> </ul> </li> <li> <strong>適用情境</strong>： <ul> <li>PC method：簡單、不需 normality、loadings 不隨 \(m\) 變，做 exploratory FA 很方便。</li> <li>MLE：需要 normality，但可以做 LRT 來選 \(m\)，且 fit covariance 更精準。</li> </ul> </li> <li> <strong>Strategy</strong> (lecture 結尾建議)： <ol> <li>先做 PC factor analysis。</li> <li>再做 MLE factor analysis。</li> <li>比較兩種結果。</li> <li>對不同 \(m\) 重複 1–3。</li> <li>大資料時可以 split 然後分別跑。</li> </ol> </li> </ul> <hr> <h3 id="factor-rotation">Factor Rotation</h3> <h6 id="motivation-1">Motivation</h6> <ul> <li>由 rotation indeterminacy，給定估計 \(\hat L_{(p \times m)}\)，任何 \(\hat L^* = \hat L T\) (\(T T^T = I\)) 都同樣 fit data。</li> <li>那就挑一個 \(T\) 讓 loading <strong>解釋性最好</strong>。理想的 pattern：「每個變數只在一個 factor 上 loading 大，其他都接近 0」，這樣每個 factor 就有明確的「主題」。 \(\begin{aligned} X_1 - \mu_1 &amp;= \underbrace{\ell^*_{11} }_\text{large} F_1 + \underbrace{\ell^*_{12} }_\text{small} F_2 + \cdots + \underbrace{\ell^*_{1m} }_\text{small} F_m + \varepsilon_1 \\ X_2 - \mu_2 &amp;= \underbrace{\ell^*_{21} }_\text{small} F_1 + \underbrace{\ell^*_{22} }_\text{large} F_2 + \cdots + \underbrace{\ell^*_{2m} }_\text{small} F_m + \varepsilon_2 \\ &amp;\;\;\vdots \end{aligned}\)</li> <li>Rotation <strong>不會改變</strong> communality \(\hat h_i^2\)、specific variance \(\hat \psi_i\)、\(\hat \Sigma\)，只把 loading 在 factors 之間「重分配」。</li> </ul> <h6 id="graphical-method-m--2">Graphical Method (\(m = 2\))</h6> <ul> <li>當 \(m = 2\)，每個變數 \(i\) 對應到平面上的點 \((\hat\ell_{i1}, \hat\ell_{i2})\)。直接旋轉座標軸讓變數「貼齊」其中一軸： \(\hat L^* = \hat L \, T_{(2 \times 2)}, \qquad T = \begin{bmatrix} \cos\phi &amp; -\sin\phi \\ \sin\phi &amp; \cos\phi \end{bmatrix}\;(\text{counterclockwise rotation by } \phi).\)</li> </ul> <h6 id="varimax-criterion-kaiser-1958">Varimax Criterion (Kaiser, 1958)</h6> <ul> <li>Step 1: scale loading by \(\hat h_i\) (避免 communality 大的變數壓過其他): \(\tilde \ell_{ij} = \hat \ell_{ij} / \hat h_i.\)</li> <li>Step 2: 選 orthogonal \(T\) 使下面的 \(V\) 盡量大： \(V = \frac{1}{p} \sum_{j=1}^{m} \left[ \sum_{i=1}^p \tilde\ell_{ij}^4 - \frac{1}{p}\!\left(\sum_{i=1}^p \tilde\ell_{ij}^2\right)^{\!2} \right]\)</li> <li>內層那一坨形式上就是「第 \(j\) 個 factor 上各變數 (scaled) 平方 loading 的 variance」 \(\times p\)。 <ul> <li>Variance 大 \(\Leftrightarrow\) 各變數的平方 loading 落差大 \(\Leftrightarrow\) 有些超大、有些很小 \(\Leftrightarrow\) 達到「one large, others small」的目標。</li> </ul> </li> <li>把所有 factors 的 variance 加起來再最大化，就是 varimax 名字的由來 (variance maximisation)。</li> </ul> <h6 id="oblique-non-orthogonal-rotation">Oblique (Non-Orthogonal) Rotation</h6> <ul> <li>社會科學常用，不要求 rotated factors 之間互相正交 (允許 factors 有相關性)。</li> <li>直觀對比： <ul> <li> <strong>Orthogonal rotation</strong> 是「rigid rotation」(剛性轉動，所有軸一起轉)。</li> <li> <strong>Oblique rotation</strong> 是「non-rigid」(每個軸可以單獨往 cluster 方向斜過去)，因此能更貼近資料的 cluster。</li> </ul> </li> <li>代價：詮釋變得複雜 (factors 不再 independent)，後續 factor score、共變異重建公式都要改寫。</li> </ul> <hr> <h3 id="factor-score">Factor Score</h3> <h6 id="what-are-factor-scores">What are factor scores?</h6> <ul> <li>Estimated value of the unobserved \(F\) for each observation \(j\)： \(\hat f_j = \text{estimate of the value } f_j \text{ attained by } F_j, \qquad j = 1, \dots, n.\)</li> <li>注意 factor scores <strong>不是參數的估計</strong>，而是潛在隨機變數值的估計 (角色上類似 mixed model 中 random effect 的 BLUP)。</li> </ul> <h4 id="weighted-least-squares-bartlett-method">Weighted Least Squares (Bartlett) Method</h4> <h6 id="idea">Idea</h6> <ul> <li>把 \(\mu, L, \Psi\) 都當成 known，\(F\) 是要被估計的「未知值」。對單一觀測 \(x\)，model 給出 \(x - \mu = L f + \varepsilon, \qquad \mathrm{Var}(\varepsilon_i) = \psi_i.\)</li> <li>因為 \(\psi_i\) 不一定相等 (heteroscedastic)，Bartlett 提議用 weighted LS：每個 component 用 \(1 / \psi_i\) 做 weight。 \(\sum_{i=1}^p \frac{\varepsilon_i^2}{\psi_i} = \varepsilon^T \Psi^{-1} \varepsilon = (x - \mu - Lf)^T \Psi^{-1} (x - \mu - Lf).\)</li> <li>對 \(f\) 求導等於 0，closed-form solution： \(\boxed{\;\hat f = (L^T \Psi^{-1} L)^{-1} L^T \Psi^{-1} (x - \mu).\;}\)</li> </ul> <h6 id="plug-in-sample-version">Plug-in Sample Version</h6> <ul> <li>把 \(\hat L, \hat \Psi, \hat \mu = \bar x\) 帶回去，第 \(j\) 個觀測的 factor score： \(\hat f_j = (\hat L^T \hat\Psi^{-1} \hat L)^{-1} \hat L^T \hat\Psi^{-1} (x_j - \bar x), \qquad j = 1, \dots, n.\)</li> <li> <strong>MLE 特例</strong>：MLE 滿足 uniqueness condition \(\hat L^T \hat\Psi^{-1} \hat L = \hat\Delta\) (diagonal)，所以化簡為 \(\hat f_j = \hat\Delta^{-1} \hat L^T \hat\Psi^{-1}(x_j - \bar x).\)</li> <li> <strong>Standardised case</strong> (factored \(R\))： \(\hat f_j = (\hat L_z^T \hat\Psi_z^{-1} \hat L_z)^{-1} \hat L_z^T \hat\Psi_z^{-1}\, z_j, \qquad z_j = \hat D^{-1/2}(x_j - \bar x).\)</li> <li> <strong>Rotation 之後</strong>：用 \(\hat L^* = \hat L T\) 計算的 factor scores 也只是被 \(T\) 旋轉：\(\hat f_j^* = T^T \hat f_j\)。</li> <li> <strong>PC method 特例</strong>：因為 PC method 的「方向」跟 weighted LS 不太契合，習慣改用 unweighted LS，給出 \(\hat f_j = (\tilde L^T \tilde L)^{-1} \tilde L^T (x_j - \bar x) = \begin{bmatrix} \hat e_1^T (x_j - \bar x) / \sqrt{\hat\lambda_1} \\ \vdots \\ \hat e_m^T (x_j - \bar x) / \sqrt{\hat\lambda_m} \end{bmatrix}.\) 也就是「前 \(m\) 個 scaled principal components」 evaluated at \(x_j\) (跟 PCA 的 score 直接對應)。</li> </ul> <h4 id="regression-method">Regression Method</h4> <h6 id="idea-1">Idea</h6> <ul> <li>在 \(F, \varepsilon\) jointly normal 的假設下： \(\begin{bmatrix} F \\ X - \mu \end{bmatrix} \sim N_{m+p}\!\left(0, \begin{bmatrix} I_{m \times m} &amp; L^T \\ L &amp; LL^T + \Psi \end{bmatrix}\right).\)</li> <li>由 multivariate normal 的條件分佈公式 (\(F \vert X\) 也是 normal)： \(E(F | x) = L^T (LL^T + \Psi)^{-1}(x - \mu) = L^T \Sigma^{-1}(x - \mu),\) \(\mathrm{Cov}(F | x) = I - L^T \Sigma^{-1} L.\)</li> <li>所以「regression-based factor score」就是 <strong>conditional expectation</strong> \(E(F\vert x)\)，相當於把 \(F\) 對 \(X - \mu\) 做 best linear predictor： \(\boxed{\;\hat f_j = \hat L^T (\hat L \hat L^T + \hat \Psi)^{-1}(x_j - \bar x).\;}\)</li> <li>為了減少「\(m\) 選錯」的影響，實務上常把 \(\hat L \hat L^T + \hat \Psi\) 換成 sample covariance \(S\)： \(\hat f_j = \hat L^T S^{-1}(x_j - \bar x).\)</li> </ul> <h6 id="standardised-case">Standardised Case</h6> <p>\(\hat f_j = \hat L_z^T R^{-1} z_j, \qquad j = 1, \dots, n.\)</p> <h4 id="regression-vs-wls">Regression vs WLS</h4> <ul> <li>用 Woodbury-type identity: \((LL^T + \Psi)^{-1} = \Psi^{-1} - \Psi^{-1} L (I + L^T \Psi^{-1} L)^{-1} L^T \Psi^{-1}.\)</li> <li>兩種 score 之間的關係： \(\hat f_j^{LS} = \bigl(I + (\hat L^T \hat\Psi^{-1} \hat L)^{-1}\bigr) \hat f_j^R.\)</li> <li> <strong>MLE 特例</strong>：因為 \(\hat L^T \hat\Psi^{-1} \hat L = \hat\Delta\) 是對角矩陣。當 \(\hat\Delta^{-1}\) 的對角元都接近 0 時 (也就是 common factors「fit 得很強」時)，\(\hat f_j^{LS} \approx \hat f_j^R\)。</li> <li>直觀對比： <ul> <li> <strong>WLS</strong>: frequentist angle，把 \(f\) 視為 fixed unknown，最小化 weighted squared error。</li> <li> <strong>Regression</strong>: Bayesian / shrinkage angle，把 \(f\) 視為 random，求 conditional expectation，自動朝 0 shrink (因為 prior \(E(F) = 0\))。</li> </ul> </li> </ul> <hr> <h3 id="summary">Summary</h3> <ul> <li> <strong>FA model</strong>: \(X - \mu = LF + \varepsilon \;\Longrightarrow\; \Sigma = LL^T + \Psi, \qquad \sigma_{ii} = \underbrace{h_i^2}_\text{communality} + \underbrace{\psi_i}_\text{specific var}.\)</li> <li>重點觀念：<strong>FA 在 fit covariance (off-diagonal)</strong>，不像 PCA 那樣 fit variance (diagonal)。</li> <li> <strong>PC method</strong>：簡單、不需 normality、loading 隨 \(m\) 不變。fit 對角線好但 off-diagonal 殘差大。</li> <li> <strong>Principal factor solution</strong>：在 \(R\) 的對角線上把 \(\psi_i\) 扣掉再做 eigen，spirit 上更接近 FA 本意。</li> <li> <strong>MLE method</strong>：需要 normality，可以做 LRT 選 \(m\) (with Bartlett 修正)，fit 對 covariance 更精準。</li> <li> <strong>Rotation</strong>：因為 \(L\) 只能定到 orthogonal rotation 為止，可以 freely rotate 到「容易解釋」的版本 (varimax 是最常用)。Rotation 不影響 communality / specific variance / \(\hat \Sigma\)。</li> <li> <strong>Factor score</strong>：兩種主流，Bartlett WLS 與 regression (conditional mean)。MLE 下兩者在 \(\hat\Delta^{-1}\) 對角元接近 0 時近似相等。</li> <li>實務 strategy：兩種 method 都跑、不同 \(m\) 都試、必要時 split sample，互相對照才不會被單一方法騙。</li> </ul> <blockquote> <p><strong>跟 PCA 的對照速查</strong> | 面向 | PCA | FA | |—|—|—| | 性質 | linear transformation | statistical model | | 目標 | 保留 variance | 解釋 covariance | | 假設 | 不需 (做 inference 才需 MVN) | 至少要 \(\Sigma = LL^T + \Psi\)；MLE 還需 normality | | \(Y\) vs \(F\) | \(Y = E^T X\)，可直接算 | \(F\) latent，需估計 (factor score) | | Loading | \(e_{ik}\sqrt{\lambda_i}\) (唯一) | \(\ell_{ij}\) (差一個 rotation \(T\)) | | Rotation | 無意義 (PCs 已被 variance 排序固定) | 必要的解釋手段 |</p> </blockquote> </article> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Chia-Fan Chu. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. </div> </footer> <script>
+  window.alFolio = {
+    compatBootstrap: false
+  };
+</script> <script src="/assets/js/nav-toggle.js?v=141bd79a73ebc0f0b6ea58e440ae79fc"></script> <script defer src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js" integrity="sha256-Nn1q/fx0H7SNLZMQ5Hw5JLaTRZp0yILA/FRexe19VdI=" crossorigin="anonymous"></script> <script defer src="https://cdn.jsdelivr.net/npm/imagesloaded@5.0.0/imagesloaded.pkgd.min.js" integrity="sha256-htrLFfZJ6v5udOG+3kNLINIKh2gvoKqwEhHYfTTMICc=" crossorigin="anonymous"></script> <script defer src="/assets/js/masonry.js?v=e49affc7bd2646f6acdad1dbe02c2359" type="text/javascript"></script> <script defer type="text/javascript" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script> <script src="/assets/al_math/js/mathjax-setup.js"></script> <script defer src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6" crossorigin="anonymous"></script> <script src="/assets/js/tooltips-setup.js?v=fe487e99db6c43751e6e7bdb2d6a0611"></script> <script src="/assets/js/no_defer.js?v=53b1b1a645525975c963ce8bf8bfefcf"></script> <script defer src="/assets/js/common.js?v=87baac90f765f2f3362dcf6aaf312a8a"></script> <script defer src="/assets/js/copy_code.js?v=c8a01c11a92744d44b093fc3bda915df" type="text/javascript"></script> <script defer src="/assets/js/jupyter_new_tab.js?v=896d254890d9b47f0281f63bfccf0dee"></script> <script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script> <script async src="https://badge.dimensions.ai/badge.js"></script> <script defer src="https://cdn.jsdelivr.net/npm/medium-zoom@1.1.0/dist/medium-zoom.min.js" integrity="sha256-ZgMyDAIYDYGxbcpJcfUnYwNevG/xi9OHKaR/8GK+jWc=" crossorigin="anonymous"></script> <script defer src="/assets/al_img_tools/js/zoom.js"></script> <script defer src="/assets/js/progress-bar.js?v=499464c5c63ced6cf7ad62509f1e2610" type="text/javascript"></script> <script src="https://cdn.jsdelivr.net/npm/vanilla-back-to-top@7.2.1/dist/vanilla-back-to-top.min.js" integrity="sha256-uMJJ3EoTyfRBoTbR+lrfu1uRQ87RZG8AR3cVNuQVeFg=" crossorigin="anonymous"></script> <script>
+    addBackToTop();
+  </script> <script type="module" src="/assets/al_search/js/search/ninja-keys.min.js"></script> <ninja-keys hidebreadcrumbs noautoloadmdicons placeholder="Type to start searching"></ninja-keys> <script src="/assets/al_search/js/search-setup.js"></script> <script>
+// get the ninja-keys element
+const ninja = document.querySelector('ninja-keys');
+
+// add the home and posts menu items
+ninja.data = [{
+    id: "nav-about",
+    title: "about",
+    section: "Navigation",
+    handler: () => {
+      window.location.href = "/";
+    },
+  },{id: "nav-cv",
+          title: "CV",
+          description: "Education, experience, publications, and skills.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/cv/";
+          },
+        },{id: "nav-shared-notes",
+          title: "shared notes",
+          description: "Notes I keep while reading papers and working through courses. Shared as-is; most are living documents, so expect a few rough edges.",
+          section: "Navigation",
+          handler: () => {
+            window.location.href = "/notes/";
+          },
+        },{id: "notes-mastering-the-game-of-go-without-human-knowledge",
+          title: 'Mastering the Game of Go without Human Knowledge',
+          description: "PUCT math and why MCTS acts as a policy improvement operator.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/alphago-zero/";
+            },},{id: "notes-curriculum-learning-for-reinforcement-learning-domains-a-framework-and-survey",
+          title: 'Curriculum Learning for Reinforcement Learning Domains: A Framework and Survey',
+          description: "Section-by-section summary of the curriculum learning framework and its design dimensions.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-rl-survey/";
+            },},{id: "notes-a-survey-on-curriculum-learning",
+          title: 'A Survey on Curriculum Learning',
+          description: "Predefined vs automatic curricula and self-paced learning, summarized.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/curriculum-learning-survey/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-dual-attention-network-based-reinforcement-learning",
+          title: 'Flexible Job Shop Scheduling via Dual Attention Network-Based Reinforcement Learning',
+          description: "Dual-attention method with the math spelled out, plus a note on a missing ablation.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/daniel-dual-attention/";
+            },},{id: "notes-deep-reinforcement-learning-for-dynamic-scheduling-of-a-flexible-job-shop",
+          title: 'Deep Reinforcement Learning for Dynamic Scheduling of a Flexible Job Shop',
+          description: "MDP breakdown plus my comparison tables against related dynamic-scheduling designs.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-dynamic-fjs/";
+            },},{id: "notes-challenges-and-opportunities-in-deep-reinforcement-learning-with-graph-neural-networks",
+          title: 'Challenges and Opportunities in Deep Reinforcement Learning with Graph Neural Networks',
+          description: "Review of how DRL and GNNs combine, and where the open challenges are.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-gnn-review/";
+            },},{id: "notes-deep-rl-for-machine-scheduling-methodology-state-of-the-art-and-future-directions",
+          title: 'Deep RL for Machine Scheduling: Methodology, State of the Art, and Future Directions...',
+          description: "Taxonomy of state, action, and reward designs across the machine-scheduling literature.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/drl-machine-scheduling-survey/";
+            },},{id: "notes-feudal-networks-for-hierarchical-reinforcement-learning",
+          title: 'FeUdal Networks for Hierarchical Reinforcement Learning',
+          description: "Manager/Worker architecture, transition policy gradient, and ablations explained.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/feudal-networks/";
+            },},{id: "notes-flexible-job-shop-scheduling-via-graph-neural-network-and-deep-reinforcement-learning",
+          title: 'Flexible Job-Shop Scheduling via Graph Neural Network and Deep Reinforcement Learning',
+          description: "Detailed method and experiment summary of a key heterogeneous-graph baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-gnn-drl/";
+            },},{id: "notes-the-flexible-job-shop-scheduling-problem-a-review",
+          title: 'The Flexible Job Shop Scheduling Problem: A Review',
+          description: "Schedule classes, problem variants, and solution families, connected back to RL.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/fjsp-review/";
+            },},{id: "notes-heterogeneous-graph-transformer",
+          title: 'Heterogeneous Graph Transformer',
+          description: "Mutual attention, message passing, and relative temporal encoding, with a worked example.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/heterogeneous-graph-transformer/";
+            },},{id: "notes-knowledge-enabled-multi-agent-drl-for-batch-machine-scheduling-in-semiconductor-fabrication",
+          title: 'Knowledge-enabled Multi-agent DRL for Batch Machine Scheduling in Semiconductor Fabrication',
+          description: "IRL plus MADRL pipeline, reward design, and my critique of it.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/knowledge-madrl-semiconductor/";
+            },},{id: "notes-list-scheduling-and-beam-search-methods-for-the-fjsp-with-sequencing-flexibility",
+          title: 'List Scheduling and Beam Search Methods for the FJSP with Sequencing Flexibility',
+          description: "Problem, method, and results of a strong non-learning FJSP baseline.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/list-scheduling-beam-search-fjsp/";
+            },},{id: "notes-monte-carlo-tree-search-a-review-of-recent-modifications-and-applications",
+          title: 'Monte Carlo Tree Search: A Review of Recent Modifications and Applications',
+          description: "Survey walkthrough of the MCTS phases and variants, with my notes on relevance to scheduling.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mcts-review/";
+            },},{id: "notes-ch-0-introduction",
+          title: 'Ch 0 Introduction',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch0-introduction/";
+            },},{id: "notes-ch-1-traditional-machine-learning-on-graphs",
+          title: 'Ch 1 Traditional Machine Learning on Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch1-traditional-ml-on-graphs/";
+            },},{id: "notes-ch-10-11-15-knowledge-graph",
+          title: 'Ch 10, 11, 15 Knowledge Graph',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch10-11-15-knowledge-graph/";
+            },},{id: "notes-ch-12-gnns-for-recommender-systems",
+          title: 'Ch 12 GNNs for Recommender Systems',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch12-gnns-for-recommender-systems/";
+            },},{id: "notes-ch-14-advanced-topics-in-graph-neural-networks",
+          title: 'Ch 14 Advanced Topics in Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch14-advanced-topics/";
+            },},{id: "notes-ch-16-deep-generative-models-for-graphs",
+          title: 'Ch 16 Deep Generative Models for Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch16-deep-generative-models/";
+            },},{id: "notes-ch-17-geometric-graph-learning",
+          title: 'Ch 17 Geometric Graph Learning',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch17-geometric-graph-learning/";
+            },},{id: "notes-ch-19-label-propagation",
+          title: 'Ch 19 Label Propagation',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch19-label-propagation/";
+            },},{id: "notes-ch-2-node-embedding",
+          title: 'Ch 2 Node Embedding',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch2-node-embedding/";
+            },},{id: "notes-ch-20-scaling-up-gnns",
+          title: 'Ch 20 Scaling Up GNNs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch20-scaling-up-gnns/";
+            },},{id: "notes-ch-21-trustworthy-graph-ai",
+          title: 'Ch 21 Trustworthy Graph AI',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch21-trustworthy-graph-ai/";
+            },},{id: "notes-ch-3-graph-neural-networks",
+          title: 'Ch 3 Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch3-graph-neural-networks/";
+            },},{id: "notes-ch-4-a-general-perspective-on-graph-neural-networks",
+          title: 'Ch 4 A General Perspective on Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch4-general-perspective-on-gnn/";
+            },},{id: "notes-ch-5-gnn-augmentation-and-training",
+          title: 'Ch 5 GNN Augmentation and Training',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch5-gnn-augmentation-and-training/";
+            },},{id: "notes-ch-6-theory-of-graph-neural-networks",
+          title: 'Ch 6 Theory of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch6-theory-of-gnns/";
+            },},{id: "notes-ch-7-limits-of-graph-neural-networks",
+          title: 'Ch 7 Limits of Graph Neural Networks',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch7-limits-of-gnns/";
+            },},{id: "notes-ch-8-graph-transformers",
+          title: 'Ch 8 Graph Transformers',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch8-graph-transformers/";
+            },},{id: "notes-ch-9-machine-learning-with-heterogeneous-graphs",
+          title: 'Ch 9 Machine Learning with Heterogeneous Graphs',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-ch9-heterogeneous-graphs/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map plus my conclusions on how to design and train a GNN.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mlg-overview/";
+            },},{id: "notes-clustering-method",
+          title: 'Clustering Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-clustering-method/";
+            },},{id: "notes-factor-analysis",
+          title: 'Factor Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-factor-analysis/";
+            },},{id: "notes-prerequisite",
+          title: 'Prerequisite',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-prerequisite/";
+            },},{id: "notes-principal-component-analysis",
+          title: 'Principal Component Analysis',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/mva-principal-component-analysis/";
+            },},{id: "notes-ch-14-general-purpose-procedures-for-deterministic-scheduling",
+          title: 'Ch 14 General Purpose Procedures for Deterministic Scheduling',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch14-general-purpose-procedures/";
+            },},{id: "notes-ch-15-more-advance-general-purpose-procedures",
+          title: 'Ch 15 More Advance General Purpose Procedures',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch15-more-advance-general-purpose-procedures/";
+            },},{id: "notes-ch-16-modeling-and-solving-scheduling-problems-in-practice",
+          title: 'Ch 16 Modeling and Solving Scheduling Problems in Practice',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch16-modeling-and-solving-scheduling-problems/";
+            },},{id: "notes-ch-2-deterministic-models-preliminaries",
+          title: 'Ch 2 Deterministic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch2-deterministic-models-preliminaries/";
+            },},{id: "notes-ch-3-single-machine-method",
+          title: 'Ch 3 Single Machine Method',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch3-single-machine-method/";
+            },},{id: "notes-ch-4-advance-single-machine",
+          title: 'Ch 4 Advance Single Machine',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch4-advance-single-machine/";
+            },},{id: "notes-ch-5-parallel-machine-model",
+          title: 'Ch 5 Parallel Machine Model',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch5-parallel-machine-model/";
+            },},{id: "notes-ch-6-flow-shop",
+          title: 'Ch 6 Flow Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch6-flow-shop/";
+            },},{id: "notes-ch-7-job-shop",
+          title: 'Ch 7 Job Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch7-job-shop/";
+            },},{id: "notes-ch-8-open-shop",
+          title: 'Ch 8 Open Shop',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch8-open-shop/";
+            },},{id: "notes-ch-9-stochastic-models-preliminaries",
+          title: 'Ch 9 Stochastic Models Preliminaries',
+          description: "",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-ch9-stochastic-models-preliminaries/";
+            },},{id: "notes-overview",
+          title: 'Overview',
+          description: "Course map: which chapters are covered and how they fit together.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/pos-overview/";
+            },},{id: "notes-real-time-scheduling-for-dynamic-partial-no-wait-multiobjective-flexible-job-shop-by-drl",
+          title: 'Real-Time Scheduling for Dynamic Partial-No-Wait Multiobjective Flexible Job Shop by DRL',
+          description: "Hierarchical multi-agent MDP with rule tables and Pareto metrics.",
+          section: "Notes",handler: () => {
+              window.location.href = "/notes/realtime-partial-no-wait-fjs/";
+            },},{
+        id: 'social-email',
+        title: 'email',
+        section: 'Socials',
+        handler: () => {
+          window.open("mailto:%6F%6B%75%6D%6F%63%68%75%35%35@%67%6D%61%69%6C.%63%6F%6D", "_blank");
+        },
+      },{
+        id: 'social-github',
+        title: 'GitHub',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://github.com/okumochu", "_blank");
+        },
+      },{
+        id: 'social-linkedin',
+        title: 'LinkedIn',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://www.linkedin.com/in/chia-fan-chu", "_blank");
+        },
+      },{
+        id: 'social-scholar',
+        title: 'Google Scholar',
+        section: 'Socials',
+        handler: () => {
+          window.open("https://scholar.google.com/citations?user=BfaixEUAAAAJ", "_blank");
+        },
+      },];
+
+</script> <script src="/assets/al_search/js/shortcut-key.js"></script> </body> </html>
