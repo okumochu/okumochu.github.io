@@ -181,6 +181,9 @@ collections:
     defaults:
       layout: post
     output: true
+  notes:
+    output: true
+    permalink: /notes/:path/
   projects:
     output: true
   teachings:

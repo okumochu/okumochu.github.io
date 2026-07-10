@@ -44,7 +44,7 @@ cv:
 
     Experience:
       - company: TSMC (Taiwan Semiconductor Manufacturing Company)
-        position: Intern, Integration and Intelligent Planning Division II
+        position: Intern
         location: Hsinchu, Taiwan
         start_date: 2026-07
         end_date: present
@@ -71,9 +71,6 @@ cv:
       - title: Best Paper Award
         date: 2024
         awarder: CIE ISMI 2024
-      - title: PhD Scholarship (NT$40,000/month)
-        date: 2026
-        awarder: National Taiwan University
 
     Skills:
       - name: Domains
